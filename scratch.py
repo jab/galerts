@@ -20,7 +20,6 @@ class TestHTTPServer(object):
 # http://snipt.net/thejames/php-google-reader-authentication-script/
 # http://code.google.com/p/pyrfeed/wiki/GoogleReaderAPI
 def gauth(googleid, password):
-    """googleid for joe@gmail.com is 'joe'"""
     params = urlencode({
         'service': 'alerts',
         'continue': 'http://www.google.com/',
