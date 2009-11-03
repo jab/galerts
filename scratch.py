@@ -1,72 +1,104 @@
 from getpass import getpass
 from httplib import HTTPConnection, HTTPSConnection
+from operator import itemgetter
 from urllib import urlencode
 
 
-from eventlet.api import tcp_listener
-from eventlet.wsgi import server as wsgi_server
-from webob import Request, Response
-class TestHTTPServer(object):
-    def __init__(self, port=9291):
-        self.port = port
-    def run(self):
-        wsgi_server(tcp_listener(('127.0.0.1', self.port)), self)
-    def __call__(self, environ, start_response):
-        res = Response()
-        res.status = 404
-        return res(environ, start_response)
+#from eventlet.api import tcp_listener
+#from eventlet.wsgi import server as wsgi_server
+#from webob import Request, Response
+#class TestHTTPServer(object):
+#    def __init__(self, port=9291):
+#        self.port = port
+#    def run(self):
+#        wsgi_server(tcp_listener(('127.0.0.1', self.port)), self)
+#    def __call__(self, environ, start_response):
+#        req = Request(environ)
+#        import pdb; pdb.set_trace()
+#        res = Response()
+#        res.status = 404
+#        return res(environ, start_response)
 
 
 # http://snipt.net/thejames/php-google-reader-authentication-script/
 # http://code.google.com/p/pyrfeed/wiki/GoogleReaderAPI
-def gauth(googleid, password):
+def gcookie(email, password):
     params = urlencode({
-        'service': 'alerts',
-        'continue': 'http://www.google.com/',
-        'Email': googleid,
+        'Email': email,
         'Passwd': password,
-        'source': 'bluzzard', # XXX can be anything
+        'service': 'alerts',
         })
     headers = {'Content-type': 'application/x-www-form-urlencoded'}
     conn = HTTPSConnection('www.google.com')
     conn.request('POST', '/accounts/ClientLogin', params, headers)
     response = conn.getresponse()
-    result = {}
-    if response.status == 200:
-        body = response.read()
-        for line in body.split():
-            k, v = line.split('=', 1)
-            result[k] = v
-    else:
-        print 'unexpected response: %d %s' % (response.status, response.reason)
-        import pdb; pdb.set_trace()
+    assert response.status == 200
+    body = response.read()
     conn.close()
-    return result
+    cookie = '; '.join(body.split('\n'))
+    return cookie
 
-
-def greader_unread(googleid, password):
-    sid = gauth(googleid, password)['SID']
-    cookie = 'SID=%s; domain=.google.com; path=/; expires=1600000000' % sid
+def getsig(cookie):
     headers = {'Cookie': cookie}
     conn = HTTPConnection('www.google.com')
-    conn.request('GET', '/reader/atom/user/-/state/com.google/reading-list', '', headers) # /user/- is a shortcut for the currently logged-in user
+    conn.request('GET', '/alerts/manage?hl=en&gl=us', None, headers)
     response = conn.getresponse()
-    result = ''
-    if response.status == 200:
-        return response.read()
+    assert response.status == 200
+    body = response.read()
+    # XXX this is mad brittle
+    match = '<input type=hidden name="sig" value="'
+    i = body.find(match) + len(match)
+    sig = body[i:i+27] # sig is always 27 characters
+    conn.close()
+    return sig
+
+def create_alert(cookie, query, email, type, sig):
+    headers = {'Cookie': cookie,
+               'Content-type': 'application/x-www-form-urlencoded'}
+    params = urlencode(dict(
+        q=query,
+        e=email,
+        t=type,
+        ca='Create Alert',
+        sig=sig,
+        d='6',  # means deliver to feed
+        che='', # XXX this is never set, no idea what it means
+        ))
+    conn = HTTPConnection('www.google.com')
+    conn.request('POST', '/alerts/save?hl=en&gl=us', params, headers)
+    response = conn.getresponse()
+    if response.status == 302:
+        print 'alert created'
     else:
-        print 'unexpected response: %d %s' % (response.status, response.reason)
         import pdb; pdb.set_trace()
     conn.close()
-    return result
 
+
+ALERT_TYPE_MAP = dict(
+    news='1',
+    blogs='4',
+    web='2',
+    comprehensive='7',
+    video='9',
+    groups='8',
+    )
 
 if __name__ == '__main__':
-    googleid = raw_input('googleid: ')
+    email = raw_input('email: ')
+    if not email.endswith('@gmail.com'):
+        email += '@gmail.com'
     password = getpass('password: ')
-    unread = greader_unread(googleid, password)
-    if unread:
-        from feedparser import parse
-        feed = parse(unread)
-        print 'unread:'
-        print '\n'.join(i.title for i in feed.entries)
+    query = raw_input('query: ')
+    while True:
+        type = raw_input('alert type:\n  choices:\n%s%s' %
+            ('\n'.join('    %s: %s' % (k, v) for (k, v) in sorted(
+            ALERT_TYPE_MAP.iteritems(), key=itemgetter(1))),
+            '\n\n  choice: '))
+        if type in ALERT_TYPE_MAP.itervalues():
+            break
+        print 'invalid type, try again\n'
+    print
+
+    cookie = gcookie(email, password)
+    sig = getsig(cookie)
+    create_alert(cookie, query, email, type, sig)
