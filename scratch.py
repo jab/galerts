@@ -37,10 +37,10 @@ def gcookie(email, password):
     cookie = '; '.join(body.split('\n'))
     return cookie
 
-def getsig(cookie):
+def getsig(cookie, path='/alerts'):
     headers = {'Cookie': cookie}
     conn = HTTPConnection('www.google.com')
-    conn.request('GET', '/alerts', None, headers)
+    conn.request('GET', path, None, headers)
     response = conn.getresponse()
     assert response.status == 200
     body = response.read()
@@ -63,10 +63,12 @@ def get_alerts(cookie):
     alerts = []
     for tr in trs:
         tds = tr.findAll('td')
+        tdcheckbox = tds[0]
         tdquery = tds[1]
         tdtype = tds[2]
         tddeliver = tds[3]
         alert = dict(
+            id=dict(tdcheckbox.findChild('input').attrs)['value'],
             query=tdquery.findChild('a').next,
             type=tdtype.findChild('font').next,
             )
@@ -92,7 +94,25 @@ def create_alert(cookie, query, type, sig):
     conn.request('POST', '/alerts/create?hl=en&gl=us', params, headers)
     response = conn.getresponse()
     if response.status == 302:
-        print 'alert created'
+        print 'Alert created.'
+    else:
+        import pdb; pdb.set_trace()
+    conn.close()
+
+def delete_alert(cookie, email, id, sig):
+    headers = {'Cookie': cookie,
+               'Content-type': 'application/x-www-form-urlencoded'}
+    params = urlencode(dict(
+        da='Delete',
+        e=email,
+        s=id,
+        sig=sig,
+        ))
+    conn = HTTPConnection('www.google.com')
+    conn.request('POST', '/alerts/save?hl=en&gl=us', params, headers)
+    response = conn.getresponse()
+    if response.status == 302:
+        print '\nAlert deleted.'
     else:
         import pdb; pdb.set_trace()
     conn.close()
@@ -116,7 +136,20 @@ def main():
         password = getpass('password: ')
         cookie = gcookie(email, password)
 
-        ACTIONS = ('List Alerts', 'Create Alert', 'Quit')
+        ACTIONS = ('List Alerts', 'Create Alert', 'Delete Alert', 'Quit')
+
+        def print_alerts(alerts):
+            print '\nCurrent Alerts:\n'
+            print '  Query                Type          Deliver to'
+            print '  =====                ====          =========='
+            for i, alert in enumerate(alerts):
+                query = alert['query']
+                if len(query) > 20:
+                    query = query[:17] + '...'
+                type = alert['type']
+                deliver = alert['deliver']
+                print i, query.ljust(20), type.ljust(13), deliver
+
         while True:
             print '\nActions:'
             print '\n'.join('  %d. %s' % (i, v) for (i, v) in enumerate(ACTIONS))
@@ -129,17 +162,20 @@ def main():
             else:
                 if action == 'List Alerts':
                     alerts = get_alerts(cookie)
-                    print
-                    print '  Query                Type          Deliver to'
-                    print '  =====                ====          =========='
-                    for alert in alerts:
-                        query = alert['query']
-                        if len(query) > 20:
-                            query = query[:17] + '...'
-                        type = alert['type']
-                        deliver = alert['deliver']
-                        print ' ', query.ljust(20), type.ljust(13), deliver
+                    print_alerts(alerts)
 
+                elif action == 'Delete Alert':
+                    alerts = get_alerts(cookie)
+                    print_alerts(alerts)
+                    while True:
+                        try:
+                            choice = int(raw_input('\n  Choice: '))
+                            alert = alerts[choice]
+                            break
+                        except (ValueError, IndexError):
+                            print '  bad input: enter a number from 0 to %d' % (len(alerts) - 1)
+                    sig = getsig(cookie, path='/alerts/manage?hl=en&gl=us')
+                    delete_alert(cookie, email, alert['id'], sig)
 
                 elif action == 'Create Alert':
                     print '\nNew Alert'
