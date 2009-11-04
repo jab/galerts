@@ -1,3 +1,4 @@
+from BeautifulSoup import BeautifulSoup
 from getpass import getpass
 from httplib import HTTPConnection, HTTPSConnection
 from operator import itemgetter
@@ -50,7 +51,34 @@ def getsig(cookie):
     conn.close()
     return sig
 
-def create_alert(cookie, query, email, type, sig):
+def get_alerts(cookie):
+    headers = {'Cookie': cookie}
+    conn = HTTPConnection('www.google.com')
+    conn.request('GET', '/alerts/manage?hl=en&gl=us', None, headers)
+    response = conn.getresponse()
+    assert response.status == 200
+    body = response.read()
+    soup = BeautifulSoup(body)
+    trs = soup.findAll('tr', attrs={'class': 'data_row'})
+    alerts = []
+    for tr in trs:
+        tds = tr.findAll('td')
+        tdquery = tds[1]
+        tdtype = tds[2]
+        tddeliver = tds[3]
+        alert = dict(
+            query=tdquery.findChild('a').next,
+            type=tdtype.findChild('font').next,
+            )
+        deliver = tddeliver.findChild('font').next
+        if deliver != 'Email':
+            deliver = dict(deliver.attrs)['href']
+        alert['deliver'] = deliver
+        alerts.append(alert)
+    conn.close()
+    return alerts
+
+def create_alert(cookie, query, type, sig):
     headers = {'Cookie': cookie,
                'Content-type': 'application/x-www-form-urlencoded'}
     params = urlencode(dict(
@@ -70,7 +98,7 @@ def create_alert(cookie, query, email, type, sig):
     conn.close()
 
 
-ALERT_TYPE_MAP = dict(
+ALERT_TYPES = dict(
     news='1',
     blogs='4',
     web='2',
@@ -79,26 +107,66 @@ ALERT_TYPE_MAP = dict(
     groups='8',
     )
 
-if __name__ == '__main__':
-    email = raw_input('email: ')
-    if not email.endswith('@gmail.com'):
-        email += '@gmail.com'
-    password = getpass('password: ')
-    while True:
-        query = raw_input('query: ')
-        if len(query) <= 256:
-            break
-        print 'query must be at most 256 characters, try again\n'
-    while True:
-        type = raw_input('alert type:\n  choices:\n%s%s' %
-            ('\n'.join('    %s: %s' % (k, v) for (k, v) in sorted(
-            ALERT_TYPE_MAP.iteritems(), key=itemgetter(1))),
-            '\n\n  choice: '))
-        if type in ALERT_TYPE_MAP.itervalues():
-            break
-        print 'invalid type, try again\n'
-    print
+def main():
+    print 'Google Alerts Manager\n'
+    try:
+        email = raw_input('email: ')
+        if not email.endswith('@gmail.com'):
+            email += '@gmail.com'
+        password = getpass('password: ')
+        cookie = gcookie(email, password)
 
-    cookie = gcookie(email, password)
-    sig = getsig(cookie)
-    create_alert(cookie, query, email, type, sig)
+        ACTIONS = ('List Alerts', 'Create Alert', 'Quit')
+        while True:
+            print '\nActions:'
+            print '\n'.join('  %d. %s' % (i, v) for (i, v) in enumerate(ACTIONS))
+            action = raw_input('  Choice: ')
+            try:
+                action = int(action)
+                action = ACTIONS[action]
+            except (ValueError, IndexError):
+                print 'bad input: enter a number from 0 to %d\n' % (len(ACTIONS) - 1)
+            else:
+                if action == 'List Alerts':
+                    alerts = get_alerts(cookie)
+                    print
+                    print '  Query                Type          Deliver to'
+                    print '  =====                ====          =========='
+                    for alert in alerts:
+                        query = alert['query']
+                        if len(query) > 20:
+                            query = query[:17] + '...'
+                        type = alert['type']
+                        deliver = alert['deliver']
+                        print ' ', query.ljust(20), type.ljust(13), deliver
+
+
+                elif action == 'Create Alert':
+                    print '\nNew Alert'
+                    while True:
+                        query = raw_input('  query: ')
+                        if len(query) <= 256:
+                            break
+                        print '  query must be at most 256 characters, try again\n'
+                    while True:
+                        print '  alert type:'
+                        print '\n'.join('    %s. %s' % (v, k) for (k, v) in sorted(
+                            ALERT_TYPES.iteritems(), key=itemgetter(1)))
+                        type = raw_input('    choice: ')
+                        if type in ALERT_TYPES.itervalues():
+                            break
+                        print '  invalid type, try again\n'
+                    sig = getsig(cookie)
+                    create_alert(cookie, query, type, sig)
+
+                elif action == 'Quit':
+                    break
+
+                else:
+                    print 'code took unexpected branch... typo?'
+    except (EOFError, KeyboardInterrupt):
+        print
+        return
+
+if __name__ == '__main__':
+    main()
