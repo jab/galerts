@@ -20,8 +20,6 @@ from urllib import urlencode
 #        return res(environ, start_response)
 
 
-# http://snipt.net/thejames/php-google-reader-authentication-script/
-# http://code.google.com/p/pyrfeed/wiki/GoogleReaderAPI
 def gcookie(email, password):
     params = urlencode({
         'Email': email,
@@ -41,7 +39,7 @@ def gcookie(email, password):
 def getsig(cookie):
     headers = {'Cookie': cookie}
     conn = HTTPConnection('www.google.com')
-    conn.request('GET', '/alerts/manage?hl=en&gl=us', None, headers)
+    conn.request('GET', '/alerts', None, headers)
     response = conn.getresponse()
     assert response.status == 200
     body = response.read()
@@ -57,15 +55,13 @@ def create_alert(cookie, query, email, type, sig):
                'Content-type': 'application/x-www-form-urlencoded'}
     params = urlencode(dict(
         q=query,
-        e=email,
+        e='feed', # email == 'feed' ->
+        f='0',    # frequency == '0' (as-it-happens)
         t=type,
-        ca='Create Alert',
         sig=sig,
-        d='6',  # means deliver to feed
-        che='', # XXX this is never set, no idea what it means
         ))
     conn = HTTPConnection('www.google.com')
-    conn.request('POST', '/alerts/save?hl=en&gl=us', params, headers)
+    conn.request('POST', '/alerts/create?hl=en&gl=us', params, headers)
     response = conn.getresponse()
     if response.status == 302:
         print 'alert created'
@@ -88,7 +84,11 @@ if __name__ == '__main__':
     if not email.endswith('@gmail.com'):
         email += '@gmail.com'
     password = getpass('password: ')
-    query = raw_input('query: ')
+    while True:
+        query = raw_input('query: ')
+        if len(query) <= 256:
+            break
+        print 'query must be at most 256 characters, try again\n'
     while True:
         type = raw_input('alert type:\n  choices:\n%s%s' %
             ('\n'.join('    %s: %s' % (k, v) for (k, v) in sorted(
