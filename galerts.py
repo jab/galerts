@@ -28,21 +28,26 @@ from httplib import HTTPConnection, HTTPSConnection
 from operator import itemgetter
 from urllib import urlencode
 
+#: Use this value to indicate delivery via email
 DELIVER_EMAIL = 'Email'
+#: Use this value to indicate delivery via feed
 DELIVER_FEED = 'feed'
 DELIVER_DEFAULT_VAL = '6'
+#: maps available delivery types to the values Google uses for them
 DELIVER_TYPES = {
     DELIVER_EMAIL: '0',
     DELIVER_FEED: DELIVER_DEFAULT_VAL,
     }
 
 AS_IT_HAPPENS = 'as-it-happens'
+#: maps available alert frequencies to the values Google uses for them
 ALERT_FREQS = {
     AS_IT_HAPPENS: '0',
     'once a day': '1',
     'once a week': '6',
     }
 
+#: maps available alert types to the values Google uses for them
 ALERT_TYPES = {
     'News': '1',
     'Blogs': '4',
@@ -52,8 +57,15 @@ ALERT_TYPES = {
     'Groups': '8',
     }
 
-class SignInError(Exception): pass
+class SignInError(Exception):
+    """
+    Raised when Google sign in fails.
+    """
+
 class UnexpectedResponseError(Exception):
+    """
+    Raised when Google's response to a request is unrecognized.
+    """
     def __init__(self, status, headers, body):
         Exception.__init__(self)
         self.resp_status = status
@@ -62,19 +74,24 @@ class UnexpectedResponseError(Exception):
 
 
 class Alert(object):
+    """
+    Models a Google Alert.
+
+    You should not create :class:`Alert` objects explicitly; the
+    :class:`GAlertsManager` will create them for you. You can then access
+    alert objects via :attr:`GAlertsManager.alerts` to update or delete them.
+    """
     def __init__(self, s, query, type, freq, deliver):
         """
-        Creates a new Alert object.
-
         :param s: the hidden input "s" value Google associates with this alert
         :param query: the search terms the alert will match
-        :param type: a value in ``ALERT_TYPES`` indicating the desired results
-        :param freq: a value in ``ALERT_FREQS`` indicating how often results
+        :param type: a value in :attr:`ALERT_TYPES` indicating the desired results
+        :param freq: a value in :attr:`ALERT_FREQS` indicating how often results
             should be delivered
-        :param deliver: should be set to ``DELIVER_EMAIL`` if results are to
+        :param deliver: should be set to :attr:`DELIVER_EMAIL` if results are to
             be delivered via email; if results are delivered via feed, this
             should be set to either the url of the feed if it's already been
-            created or to ``DELIVER_FEED`` if it hasn't been created yet
+            created or to :attr:`DELIVER_FEED` if it hasn't been created yet
         """
         assert type in ALERT_TYPES
         assert freq in ALERT_FREQS
@@ -94,26 +111,29 @@ class Alert(object):
 
 class GAlertsManager(object):
     """
-    Manages creation, modification, and deletion of Google Alerts for a given
-    Google account.
+    Manages creation, modification, and deletion of Google Alerts for the
+    Google account associated with *email*.
+
+    Note: multiple email addresses can be associated with a single Google
+    account, and if a user with multiple email addresses associated with her
+    Google account signs into the web interface, it will allow her to set the
+    delivery of email alerts to any of her associated email addresses. However,
+    for simplicity's sake, :class:`GAlertsManager` always uses the email
+    address it's instantiated with for the delivery of email alerts.
 
     Resorts to html scraping because no public API has been released.
     """
     def __init__(self, email, password):
         """
-        Creates a new GAlertsManager for the google account associated
-        with ``email``. Note: multiple email addresses can be associated
-        with a single Google account, and if a user with multiple email
-        addresses associated with her Google account signs into the web
-        interface, it will allow her to set the delivery of email alerts to
-        any of her associated email addresses. However, for simplicity's sake,
-        ``GAlertsManager`` always uses the email address it's instantiated
-        with for the delivery of email alerts.
-
         :param email: sign in using this email address; if there is no @
             symbol in the value, "@gmail.com" will be appended to it
         :param password: plaintext password, used only to get a session
             cookie (i.e. it's sent over a secure connection and then discarded)
+        :raises: :exc:`SignInError` if Google responds with "403 Forbidden" to
+            our request to sign in
+        :raises: :exc:`UnexpectedResponseError` if the status code of Google's
+              response is unrecognized (neither 403 nor 200)
+        :raises: :exc:`socket.error` e.g. if there is no network connection
         """
         if '@' not in email:
             email += '@gmail.com'
@@ -229,9 +249,10 @@ class GAlertsManager(object):
         Creates a new alert.
 
         :param query: the search terms the alert will match
-        :param type: a value in ``ALERT_TYPES`` indicating the desired results
+        :param type: a value in :attr:`ALERT_TYPES` indicating the desired
+            results
         :param feed: whether to deliver results via feed or email
-        :param freq: a value in ``ALERT_FREQS`` indicating how often results
+        :param freq: a value in :attr:`ALERT_FREQS` indicating how often results
             should be delivered; used only for email alerts (feed alerts are
             updated in real time)
         """
@@ -254,11 +275,9 @@ class GAlertsManager(object):
         finally:
             conn.close()
 
-    def udpate(self, alert):
+    def update(self, alert):
         """
         Updates an existing alert which has been modified.
-
-        :param alert: the modified alert to save
         """
         headers = {'Cookie': self.cookie,
                    'Content-type': 'application/x-www-form-urlencoded'}
