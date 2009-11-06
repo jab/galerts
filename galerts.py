@@ -287,6 +287,7 @@ class GAlertsManager(object):
 
 
 def main():
+    import socket
     print 'Google Alerts Manager\n'
     try:
         while True:
@@ -297,6 +298,9 @@ def main():
                 break
             except SignInError:
                 print '\nSign in failed, try again or hit Ctrl-C to quit\n'
+            except socket.error:
+                print '\nCould not connect to Google. Check your network ' \
+                    'connection and try again, or hit Ctrl-C to quit\n'
 
         def print_alerts(alerts):
             print
