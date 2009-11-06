@@ -231,9 +231,9 @@ class GAlertsManager(object):
         finally:
             conn.close()
 
-    def edit(self, alert):
+    def udpate(self, alert):
         """
-        Saves an existing alert which has been modified.
+        Updates an existing alert which has been modified.
 
         :param alert: the modified alert to save
         """
@@ -419,7 +419,7 @@ def main():
                 alert.freq = AS_IT_HAPPENS if alert.deliver != DELIVER_EMAIL \
                     else prompt_freq(default=alert.freq)
                 try:
-                    gam.edit(alert)
+                    gam.update(alert)
                     print '\nAlert modified.'
                 except UnexpectedResponseError, e:
                     print '\nCould not modify alert.'
