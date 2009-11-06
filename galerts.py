@@ -212,7 +212,7 @@ class GAlertsManager(object):
         conn.request('GET', '/alerts/manage?hl=en&gl=us', None, headers)
         response = conn.getresponse()
         body = response.read()
-        self.alerts = []
+        self._alerts = []
         try:
             if response.status != 200:
                 raise UnexpectedResponseError(response.status, response.getheaders(), body)
@@ -234,15 +234,23 @@ class GAlertsManager(object):
                 tdfreq = tds[4]
                 s = tdcheckbox.findChild('input')['value']
                 query = tdquery.findChild('a').next
+                # yes, they actually use <font> tags. really.
                 type = tdtype.findChild('font').next
                 freq = tdfreq.findChild('font').next
                 deliver = tddeliver.findChild('font').next
                 if deliver != DELIVER_EMAIL: # deliver to feed
                     deliver = deliver['href']
                 alert = Alert(s, query, type, freq, deliver)
-                self.alerts.append(alert)
+                self._alerts.append(alert)
         finally:
             conn.close()
+    
+    @property
+    def alerts(self):
+        """
+        Access alerts through this list.
+        """
+        return self._alerts
 
     def create(self, query, type, feed=True, freq=ALERT_FREQS[AS_IT_HAPPENS]):
         """
