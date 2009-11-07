@@ -11,7 +11,8 @@ Contents:
 .. toctree::
     :maxdepth: 2
 
-    galerts.rst
+    README <README.rst>
+    Module Documentation <galerts.rst>
 
 Indices and tables
 ==================

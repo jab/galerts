@@ -39,22 +39,39 @@ DELIVER_TYPES = {
     DELIVER_FEED: DELIVER_DEFAULT_VAL,
     }
 
-AS_IT_HAPPENS = 'as-it-happens'
+#: Use this value for Alert.freq to indicate delivery in real time
+FREQ_AS_IT_HAPPENS = 'as-it-happens'
+#: Use this value for Alert.freq to indicate delivery once a day
+FREQ_ONCE_A_DAY = 'once a day'
+#: Use this value for Alert.freq to indicate delivery once a week
+FREQ_ONCE_A_WEEK = 'once a week'
 #: maps available alert frequencies to the values Google uses for them
 ALERT_FREQS = {
-    AS_IT_HAPPENS: '0',
-    'once a day': '1',
-    'once a week': '6',
+    FREQ_AS_IT_HAPPENS: '0',
+    FREQ_ONCE_A_DAY: '1',
+    FREQ_ONCE_A_WEEK: '6',
     }
 
+#: Use this value for Alert.type to indicate news results
+TYPE_NEWS = 'News'
+#: Use this value for Alert.type to indicate blog results
+TYPE_BLOGS = 'Blogs'
+#: Use this value for Alert.type to indicate web results
+TYPE_WEB = 'Web'
+#: Use this value for Alert.type to indicate comprehensive results
+TYPE_COMPREHENSIVE = 'Comprehensive'
+#: Use this value for Alert.type to indicate video results
+TYPE_VIDEO = 'Video'
+#: Use this value for Alert.type to indicate groups results
+TYPE_GROUPS = 'Groups'
 #: maps available alert types to the values Google uses for them
 ALERT_TYPES = {
-    'News': '1',
-    'Blogs': '4',
-    'Web': '2',
-    'Comprehensive': '7',
-    'Video': '9',
-    'Groups': '8',
+    TYPE_NEWS: '1',
+    TYPE_BLOGS: '4',
+    TYPE_WEB: '2',
+    TYPE_COMPREHENSIVE: '7',
+    TYPE_VIDEO: '9',
+    TYPE_GROUPS: '8',
     }
 
 class SignInError(Exception):
@@ -79,13 +96,17 @@ class Alert(object):
 
     You should not create :class:`Alert` objects explicitly; the
     :class:`GAlertsManager` will create them for you. You can then access
-    alert objects via :attr:`GAlertsManager.alerts` to update or delete them.
+    alert objects via :attr:`GAlertsManager.alerts` to e.g. update their
+    attributes and pass them back to the manager for saving.
     """
     def __init__(self, s, query, type, freq, deliver):
         """
-        :param s: the hidden input "s" value Google associates with this alert
+        :param s: the hidden input "s" value Google associates with this alert;
+            you shouldn't ever have to worry about setting or getting this, it's
+            used internally by :class:`GAlertsManager` to save changes to Google
         :param query: the search terms the alert will match
-        :param type: a value in :attr:`ALERT_TYPES` indicating the desired results
+        :param type: a value in :attr:`ALERT_TYPES` indicating the desired
+            results
         :param freq: a value in :attr:`ALERT_FREQS` indicating how often results
             should be delivered
         :param deliver: should be set to :attr:`DELIVER_EMAIL` if results are to
@@ -95,14 +116,25 @@ class Alert(object):
         """
         assert type in ALERT_TYPES
         assert freq in ALERT_FREQS
-        self.s = s
+        self._s = s
         self.query = query
         self.type = type
         self.freq = freq
         self.deliver = deliver
 
+    @property # make s a read-only attribute to obstruct accidental overwriting
+    def s(self):
+        return self._s
+
+    def __setattr__(self, attr, value):
+        if attr == 'freq' and value not in ALERT_FREQS:
+            raise ValueError('Illegal value for Alert.freq: "%s"' % value)
+        if attr == 'type' and value not in ALERT_TYPES:
+            raise ValueError('Illegal value for Alert.type: "%s"' % value)
+        object.__setattr__(self, attr, value)
+
     def __repr__(self):
-        return '<Alert query="%s" at %s>' % (self.query, hex(id(self)))
+        return '<Alert for "%s" at %s>' % (self.query, hex(id(self)))
 
     def __str__(self):
         return '<Alert query="%s" type="%s" freq="%s" deliver="%s">' % (
@@ -139,7 +171,6 @@ class GAlertsManager(object):
             email += '@gmail.com'
         self.email = email
         self._signin(password)
-        self._refresh()
 
     def _signin(self, password):
         """
@@ -250,9 +281,10 @@ class GAlertsManager(object):
         """
         Access alerts through this list.
         """
+        self._refresh()
         return self._alerts
 
-    def create(self, query, type, feed=True, freq=ALERT_FREQS[AS_IT_HAPPENS]):
+    def create(self, query, type, feed=True, freq=ALERT_FREQS[FREQ_AS_IT_HAPPENS]):
         """
         Creates a new alert.
 
@@ -269,7 +301,7 @@ class GAlertsManager(object):
         params = urlencode({
             'q': query,
             'e': DELIVER_FEED if feed else self.email,
-            'f': ALERT_FREQS[AS_IT_HAPPENS] if feed else freq,
+            'f': ALERT_FREQS[FREQ_AS_IT_HAPPENS] if feed else freq,
             't': ALERT_TYPES[type],
             'sig': self._scrape_sig(),
             })
@@ -279,7 +311,6 @@ class GAlertsManager(object):
         try:
             if response.status != 302:
                 raise UnexpectedResponseError(response.status, response.getheaders(), response.read())
-            self._refresh()
         finally:
             conn.close()
 
@@ -309,7 +340,6 @@ class GAlertsManager(object):
         try:
             if response.status != 302:
                 raise UnexpectedResponseError(response.status, response.getheaders(), response.read())
-            self._refresh()
         finally:
             conn.close()
 
@@ -331,7 +361,6 @@ class GAlertsManager(object):
         try:
             if response.status != 302:
                 raise UnexpectedResponseError(response.status, response.getheaders(), response.read())
-            self._refresh()
         finally:
             conn.close()
 
@@ -456,7 +485,7 @@ def main():
                 query = prompt_query()
                 type = prompt_type()
                 feed = prompt_deliver() == DELIVER_FEED
-                freq = ALERT_FREQS[AS_IT_HAPPENS] if feed else prompt_freq()
+                freq = ALERT_FREQS[FREQ_AS_IT_HAPPENS] if feed else prompt_freq()
                 try:
                     gam.create(query, type, feed=feed, freq=freq)
                     print '\nAlert created.'
@@ -470,7 +499,7 @@ def main():
                 alert.query = prompt_query(default=alert.query)
                 alert.type = prompt_type(default=alert.type)
                 alert.deliver = prompt_deliver(current=alert.deliver)
-                alert.freq = AS_IT_HAPPENS if alert.deliver != DELIVER_EMAIL \
+                alert.freq = FREQ_AS_IT_HAPPENS if alert.deliver != DELIVER_EMAIL \
                     else prompt_freq(default=alert.freq)
                 try:
                     gam.update(alert)
