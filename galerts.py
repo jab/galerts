@@ -127,10 +127,16 @@ class Alert(object):
         return self._s
 
     def __setattr__(self, attr, value):
+        """
+        Ensures a valid value when attempting to set :attr:`freq`,
+        :attr:`type`, or :attr:`deliver`.
+        """
         if attr == 'freq' and value not in ALERT_FREQS:
             raise ValueError('Illegal value for Alert.freq: "%s"' % value)
         if attr == 'type' and value not in ALERT_TYPES:
             raise ValueError('Illegal value for Alert.type: "%s"' % value)
+        if attr == 'deliver' and value not in DELIVER_TYPES:
+            raise ValueError('Illegal value for Alert.deliver: "%s"' % value)
         object.__setattr__(self, attr, value)
 
     def __repr__(self):
@@ -243,7 +249,7 @@ class GAlertsManager(object):
         conn.request('GET', '/alerts/manage?hl=en&gl=us', None, headers)
         response = conn.getresponse()
         body = response.read()
-        self._alerts = []
+        self._alerts = set()
         try:
             if response.status != 200:
                 raise UnexpectedResponseError(response.status, response.getheaders(), body)
@@ -498,7 +504,9 @@ def main():
                 alert = prompt_alert(gam.alerts)
                 alert.query = prompt_query(default=alert.query)
                 alert.type = prompt_type(default=alert.type)
-                alert.deliver = prompt_deliver(current=alert.deliver)
+                deliver = prompt_deliver(current=alert.deliver)
+                if deliver != alert.deliver:
+                    alert.deliver = deliver
                 alert.freq = FREQ_AS_IT_HAPPENS if alert.deliver != DELIVER_EMAIL \
                     else prompt_freq(default=alert.freq)
                 try:
