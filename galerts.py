@@ -278,7 +278,13 @@ class GAlertsManager(object):
         finally:
             conn.close()
 
-    def _refresh(self):
+    @property
+    def alerts(self):
+        """
+        Queries Google on every access for the alerts associated with this
+        account, wraps them in :class:`Alert` objects, and returns an
+        iterable over them.
+        """
         headers = {'Cookie': self.cookie}
         conn = HTTPConnection('www.google.com')
         conn.request('GET', '/alerts/manage?hl=en&gl=us', None, headers)
@@ -287,55 +293,38 @@ class GAlertsManager(object):
         try:
             if response.status != 200:
                 raise UnexpectedResponseError(response.status, response.getheaders(), body)
-            soup = BeautifulSoup(body)
-            trs = soup.findAll('tr', attrs={'class': 'data_row'})
-            for tr in trs:
-                tds = tr.findAll('td')
-                # annoyingly, if you have no alerts, Google tells you this in
-                # a <tr> with class "data_row" in a single <td>
-                if len(tds) < 5:
-                    # we continue rather than break because there could be
-                    # subsequent iterations for other email addresses associated
-                    # with this account which do have alerts
-                    continue
-                tdcheckbox = tds[0]
-                tdquery = tds[1]
-                tdtype = tds[2]
-                tddeliver = tds[3]
-                tdfreq = tds[4]
-                email = self.email # XXX scrape out of html (could be another address associated with this account)
-                s = tdcheckbox.findChild('input')['value']
-                query = tdquery.findChild('a').next
-                # yes, they actually use <font> tags. really.
-                type = tdtype.findChild('font').next
-                freq = tdfreq.findChild('font').next
-                deliver = tddeliver.findChild('font').next
-                feedurl = None
-                if deliver != DELIVER_EMAIL:
-                    feedurl = deliver['href']
-                    deliver = DELIVER_FEED
-                try:
-                    alert = self._alerts[s]
-                except KeyError:
-                    self._alerts[s] = Alert(email, s, query, type, freq,
-                        deliver, feedurl=feedurl)
-                else:
-                    if alert._eqattrs(query, type, freq, deliver):
-                        alert._feedurl = feedurl
-                    else:
-                        self._alerts[s] = Alert(email, s, query, type, freq,
-                            deliver, feedurl=feedurl)
         finally:
             conn.close()
-    
-    @property
-    def alerts(self):
-        """
-        Access alerts through this iterator.
-        """
-        self._refresh()
-        return self._alerts.itervalues()
 
+        soup = BeautifulSoup(body)
+        trs = soup.findAll('tr', attrs={'class': 'data_row'})
+        for tr in trs:
+            tds = tr.findAll('td')
+            # annoyingly, if you have no alerts, Google tells you this in
+            # a <tr> with class "data_row" in a single <td>
+            if len(tds) < 5:
+                # we continue rather than break because there could be
+                # subsequent iterations for other email addresses associated
+                # with this account which do have alerts
+                continue
+            tdcheckbox = tds[0]
+            tdquery = tds[1]
+            tdtype = tds[2]
+            tddeliver = tds[3]
+            tdfreq = tds[4]
+            email = self.email # XXX scrape out of html (could be another address associated with this account)
+            s = tdcheckbox.findChild('input')['value']
+            query = tdquery.findChild('a').next
+            # yes, they actually use <font> tags. really.
+            type = tdtype.findChild('font').next
+            freq = tdfreq.findChild('font').next
+            deliver = tddeliver.findChild('font').next
+            feedurl = None
+            if deliver != DELIVER_EMAIL:
+                feedurl = deliver['href']
+                deliver = DELIVER_FEED
+            yield Alert(email, s, query, type, freq, deliver, feedurl=feedurl)
+    
     def create(self, query, type, feed=True, freq=ALERT_FREQS[FREQ_AS_IT_HAPPENS]):
         """
         Creates a new alert.
