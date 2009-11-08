@@ -22,7 +22,7 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 
 from BeautifulSoup import BeautifulSoup
-from collections import defaultdict
+from collections import Hashable
 from getpass import getpass
 from httplib import HTTPConnection, HTTPSConnection
 from operator import itemgetter
@@ -90,7 +90,7 @@ class UnexpectedResponseError(Exception):
         self.resp_body = body
 
 
-class Alert(object):
+class Alert(Hashable):
     """
     Models a Google Alert.
 
@@ -126,6 +126,19 @@ class Alert(object):
     def s(self):
         return self._s
 
+    def _update(self, **kw):
+        for attr in ('query', 'type', 'freq', 'deliver'):
+            try:
+                newval = kw.pop(attr)
+            except KeyError:
+                continue
+            curval = getattr(self, attr)
+            if curval != newval:
+                setattr(self, newval)
+        if kw:
+            raise TypeError('got unexpected keyword argument(s) "%s"' %
+                ', '.join(kw.iterkeys()))
+
     def __setattr__(self, attr, value):
         """
         Ensures a valid value when attempting to set :attr:`freq`,
@@ -135,9 +148,17 @@ class Alert(object):
             raise ValueError('Illegal value for Alert.freq: "%s"' % value)
         if attr == 'type' and value not in ALERT_TYPES:
             raise ValueError('Illegal value for Alert.type: "%s"' % value)
-        if attr == 'deliver' and value not in DELIVER_TYPES:
+        if attr == 'deliver' and value not in DELIVER_TYPES and
+            not value.startswith('http://www.google.com/alerts/feed'): # XXX
             raise ValueError('Illegal value for Alert.deliver: "%s"' % value)
         object.__setattr__(self, attr, value)
+
+    def __hash__(self):
+        return hash(self._s)
+
+    def __eq__(self, other):
+        return all(getattr(self, attr) == getattr(other, attr)
+            for attr in ('_s', 'query', 'type', 'freq', 'deliver'))
 
     def __repr__(self):
         return '<Alert for "%s" at %s>' % (self.query, hex(id(self)))
@@ -177,6 +198,7 @@ class GAlertsManager(object):
             email += '@gmail.com'
         self.email = email
         self._signin(password)
+        self._alerts = {}
 
     def _signin(self, password):
         """
@@ -249,7 +271,6 @@ class GAlertsManager(object):
         conn.request('GET', '/alerts/manage?hl=en&gl=us', None, headers)
         response = conn.getresponse()
         body = response.read()
-        self._alerts = set()
         try:
             if response.status != 200:
                 raise UnexpectedResponseError(response.status, response.getheaders(), body)
@@ -277,18 +298,24 @@ class GAlertsManager(object):
                 deliver = tddeliver.findChild('font').next
                 if deliver != DELIVER_EMAIL: # deliver to feed
                     deliver = deliver['href']
-                alert = Alert(s, query, type, freq, deliver)
-                self._alerts.append(alert)
+                try:
+                    alert = self._alerts[s]
+                except KeyError:
+                    self._alerts[s] = Alert(s, query, type, freq, deliver)
+                else:
+                    if alert.query != query or alert.type != type or \
+                        alert.freq != freq or alert.deliver != deliver:
+                        self._alerts[s] = Alert(s, query, type, freq, deliver)
         finally:
             conn.close()
     
     @property
     def alerts(self):
         """
-        Access alerts through this list.
+        Access alerts through this iterable.
         """
         self._refresh()
-        return self._alerts
+        return self._alerts.itervalues()
 
     def create(self, query, type, feed=True, freq=ALERT_FREQS[FREQ_AS_IT_HAPPENS]):
         """
@@ -502,13 +529,12 @@ def main():
             elif action == 'Edit Alert':
                 print_alerts(gam.alerts)
                 alert = prompt_alert(gam.alerts)
-                alert.query = prompt_query(default=alert.query)
-                alert.type = prompt_type(default=alert.type)
+                query = prompt_query(default=alert.query)
+                type = prompt_type(default=alert.type)
                 deliver = prompt_deliver(current=alert.deliver)
-                if deliver != alert.deliver:
-                    alert.deliver = deliver
-                alert.freq = FREQ_AS_IT_HAPPENS if alert.deliver != DELIVER_EMAIL \
+                freq = FREQ_AS_IT_HAPPENS if alert.deliver != DELIVER_EMAIL \
                     else prompt_freq(default=alert.freq)
+                alert._update(query=query, type=type, freq=freq, deliver=deliver)
                 try:
                     gam.update(alert)
                     print '\nAlert modified.'

@@ -28,15 +28,13 @@ sent over a secure connection and then discarded.)
 
 Now you can access the existing alerts for that account like so::
 
-    >>> gam.alerts
-    [<Alert for "Cake Man Cornelius" at ...>,
-    <Alert for "red velvet cake recipes" at ...>,
-    <Alert for "Corner Confectionary" at ...>]
+    >>> alerts = list(gam.alerts)
+    >>> alerts
+    [<Alert for "Corner Confectionary" at ...>]
 
-Hm, looks like that last one has a typo, no wonder it wasn't generating
-good results. Let's fix it::
+Hm, looks like there's a typo. Let's fix it::
 
-    >>> alert = alerts[2]
+    >>> alert = alerts[0]
     >>> alert.query = 'Corner Confectionery'
     >>> alert
     <Alert for "Corner Confectionery" at ...>]
@@ -48,47 +46,51 @@ do::
 
 And now it should be updated::
 
-    >>> gam.alerts
-    [<Alert for "Cake Man Cornelius" at ...>,
-    <Alert for "red velvet cake recipes" at ...>,
-    <Alert for "Corner Confectionery" at ...>]
+    >>> alerts = list(gam.alerts)
+    >>> alerts
+    [<Alert for "Corner Confectionery" at ...>]
 
-NOTE: Every time we look at the manager's alerts, the manager creates new
-Alert objects, so that::
-    
-    >>> alert.query == gam.alerts[2].query == 'Corner Confectionery'
+NOTE: There is no guarantee that the Alert object inside the manager's
+alerts attribute is the same object across different accesses. In other
+words, it *may not* be the case that ``id(alert) == id(alerts[2])``.
+However, you can still pass the old alert object to the manager for future
+updates or for deletion; the object is merely used to wrap some attributes,
+and it's the attributes which matter. You can always be sure that two
+different Alert objects whose attributes are equal compare equal::
+
+    >>> alert == alerts[0]
     True
-    >>> id(alert) == id(alerts[2])
-    False
 
-But you can still pass the old alert object to the manager for further
-updates or for deletion; the object is merely used to wrap some attributes, and
-it's the attributes which matter. Let's demonstrate by changing our old alert
-object's delivery frequency::
+Let's demonstrate by changing our old alert object's delivery frequency::
 
     >>> alert.freq
     'once a week'
     >>> alert.freq = galerts.FREQ_ONCE_A_DAY
+    >>> alerts = list(gam.alerts)
+    >>> alerts[0].freq
+    'once a week'
+    >>> alert == alerts[0]
+    False
     >>> gam.update(alert)
 
 And the changes should stick::
 
-    >>> [a.freq for a in gam.alerts if a.query == 'Corner Confectionery']
-    ['once a day']
+    >>> alerts = list(gam.alerts)
+    >>> alerts[0].freq
+    'once a day'
+    >>> alert == alerts[0]
+    True
 
 As mentioned, we can still use this alert object to delete this alert::
 
     >>> gam.delete(alert)
-    >>> gam.alerts
-    [<Alert for "Cake Man Cornelius" at ...>,
-    <Alert for "red velvet cake recipes" at ...>]
+    >>> list(gam.alerts)
+    []
 
 Finally, let's demonstrate creating a new alert::
 
-    >>> query = 'chocolate mousse recipes'
+    >>> query = 'Cake Man Cornelius'
     >>> type = galerts.TYPE_COMPREHENSIVE
     >>> gam.create(query, type)
     >>> gam.alerts
-    [<Alert for "Cake Man Cornelius" at ...>,
-    <Alert for "red velvet cake recipes" at ...>,
-    <Alert for "chocolate mousse recipes" at ...>]
+    [<Alert for "Cake Man Cornelius" at ...>]
