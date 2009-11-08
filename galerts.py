@@ -28,6 +28,9 @@ from httplib import HTTPConnection, HTTPSConnection
 from operator import itemgetter
 from urllib import urlencode
 
+
+# these values should match those used in the Google Alerts web interface:
+
 #: Use this value to indicate delivery via email
 DELIVER_EMAIL = 'Email'
 #: Use this value to indicate delivery via feed
@@ -99,8 +102,10 @@ class Alert(Hashable):
     alert objects via :attr:`GAlertsManager.alerts` to e.g. update their
     attributes and pass them back to the manager for saving.
     """
-    def __init__(self, s, query, type, freq, deliver):
+    def __init__(self, email, s, query, type, freq, deliver, feedurl=None):
         """
+        :param email: an email address of the Google account associated with
+            this alert
         :param s: the hidden input "s" value Google associates with this alert;
             you shouldn't ever have to worry about setting or getting this, it's
             used internally by :class:`GAlertsManager` to save changes to Google
@@ -109,35 +114,43 @@ class Alert(Hashable):
             results
         :param freq: a value in :attr:`ALERT_FREQS` indicating how often results
             should be delivered
-        :param deliver: should be set to :attr:`DELIVER_EMAIL` if results are to
-            be delivered via email; if results are delivered via feed, this
-            should be set to either the url of the feed if it's already been
-            created or to :attr:`DELIVER_FEED` if it hasn't been created yet
+        :param deliver: a value in :attr:`DELIVER_TYPES` indicating whether to
+            deliver results via feed or email
+        :param feedurl: if a feed alert, the url of the feed
         """
         assert type in ALERT_TYPES
         assert freq in ALERT_FREQS
+        assert deliver in DELIVER_TYPES
+        self._email = email
         self._s = s
         self.query = query
         self.type = type
         self.freq = freq
         self.deliver = deliver
+        self._feedurl = feedurl
 
-    @property # make s a read-only attribute to obstruct accidental overwriting
+    @property
+    def email(self):
+        return self._email
+
+    @property
     def s(self):
         return self._s
 
-    def _update(self, **kw):
-        for attr in ('query', 'type', 'freq', 'deliver'):
-            try:
-                newval = kw.pop(attr)
-            except KeyError:
-                continue
-            curval = getattr(self, attr)
-            if curval != newval:
-                setattr(self, newval)
-        if kw:
-            raise TypeError('got unexpected keyword argument(s) "%s"' %
-                ', '.join(kw.iterkeys()))
+    @property
+    def feedurl(self):
+        return self._feedurl
+
+    def _eqattrs(self, query, type, freq, deliver):
+        """
+        Convenience function used internally by :class:`GAlertsManager`
+        """
+        return (self.query == query and self.type == type and
+            self.freq == freq and self.deliver == deliver)
+
+
+    def __getattr__(self, attr):
+        object.__getattr__(self, attr)
 
     def __setattr__(self, attr, value):
         """
@@ -148,8 +161,7 @@ class Alert(Hashable):
             raise ValueError('Illegal value for Alert.freq: "%s"' % value)
         if attr == 'type' and value not in ALERT_TYPES:
             raise ValueError('Illegal value for Alert.type: "%s"' % value)
-        if attr == 'deliver' and value not in DELIVER_TYPES and
-            not value.startswith('http://www.google.com/alerts/feed'): # XXX
+        if attr == 'deliver' and value not in DELIVER_TYPES:
             raise ValueError('Illegal value for Alert.deliver: "%s"' % value)
         object.__setattr__(self, attr, value)
 
@@ -157,8 +169,8 @@ class Alert(Hashable):
         return hash(self._s)
 
     def __eq__(self, other):
-        return all(getattr(self, attr) == getattr(other, attr)
-            for attr in ('_s', 'query', 'type', 'freq', 'deliver'))
+        return all(getattr(self, attr) == getattr(other, attr) for attr in
+            ('_s', 'query', 'type', 'freq', 'deliver', '_feedurl'))
 
     def __repr__(self):
         return '<Alert for "%s" at %s>' % (self.query, hex(id(self)))
@@ -177,8 +189,9 @@ class GAlertsManager(object):
     account, and if a user with multiple email addresses associated with her
     Google account signs into the web interface, it will allow her to set the
     delivery of email alerts to any of her associated email addresses. However,
-    for simplicity's sake, :class:`GAlertsManager` always uses the email
-    address it's instantiated with for the delivery of email alerts.
+    for now, :class:`GAlertsManager` always uses the email address it's
+    instantiated with when creating new email alerts or changing feed alerts
+    to email.
 
     Resorts to html scraping because no public API has been released.
     """
@@ -290,29 +303,35 @@ class GAlertsManager(object):
                 tdtype = tds[2]
                 tddeliver = tds[3]
                 tdfreq = tds[4]
+                email = self.email # XXX scrape out of html (could be another address associated with this account)
                 s = tdcheckbox.findChild('input')['value']
                 query = tdquery.findChild('a').next
                 # yes, they actually use <font> tags. really.
                 type = tdtype.findChild('font').next
                 freq = tdfreq.findChild('font').next
                 deliver = tddeliver.findChild('font').next
-                if deliver != DELIVER_EMAIL: # deliver to feed
-                    deliver = deliver['href']
+                feedurl = None
+                if deliver != DELIVER_EMAIL:
+                    feedurl = deliver['href']
+                    deliver = DELIVER_FEED
                 try:
                     alert = self._alerts[s]
                 except KeyError:
-                    self._alerts[s] = Alert(s, query, type, freq, deliver)
+                    self._alerts[s] = Alert(email, s, query, type, freq,
+                        deliver, feedurl=feedurl)
                 else:
-                    if alert.query != query or alert.type != type or \
-                        alert.freq != freq or alert.deliver != deliver:
-                        self._alerts[s] = Alert(s, query, type, freq, deliver)
+                    if alert._eqattrs(query, type, freq, deliver):
+                        alert._feedurl = feedurl
+                    else:
+                        self._alerts[s] = Alert(email, s, query, type, freq,
+                            deliver, feedurl=feedurl)
         finally:
             conn.close()
     
     @property
     def alerts(self):
         """
-        Access alerts through this iterable.
+        Access alerts through this iterator.
         """
         self._refresh()
         return self._alerts.itervalues()
@@ -477,7 +496,7 @@ def main():
                 return DELIVER_EMAIL
             if raw_input('  Switch to email delivery (y/N)? ') == 'y':
                 return DELIVER_EMAIL
-            return current
+            return DELIVER_FEED
 
         def prompt_freq(default=None):
             while True:
@@ -529,12 +548,11 @@ def main():
             elif action == 'Edit Alert':
                 print_alerts(gam.alerts)
                 alert = prompt_alert(gam.alerts)
-                query = prompt_query(default=alert.query)
-                type = prompt_type(default=alert.type)
-                deliver = prompt_deliver(current=alert.deliver)
-                freq = FREQ_AS_IT_HAPPENS if alert.deliver != DELIVER_EMAIL \
+                alert.query = prompt_query(default=alert.query)
+                alert.type = prompt_type(default=alert.type)
+                alert.deliver = prompt_deliver(current=alert.deliver)
+                alert.freq = FREQ_AS_IT_HAPPENS if alert.deliver != DELIVER_EMAIL \
                     else prompt_freq(default=alert.freq)
-                alert._update(query=query, type=type, freq=freq, deliver=deliver)
                 try:
                     gam.update(alert)
                     print '\nAlert modified.'
