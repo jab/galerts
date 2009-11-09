@@ -16,7 +16,7 @@ galerts
 galerts is a Python client for managing `Google Alerts
 <http://www.google.com/alerts>`_. Currently it resorts to scraping html from
 Google's web interface since there is as of yet no public API. If they ever
-decide to publish one, galerts will promptly switch over to using it.
+decide to publish one, galerts will switch to using it.
 
 Using galerts should be pretty straightforward. Check out the README and the
 module itself for documentation.

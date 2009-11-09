@@ -8,7 +8,7 @@ Intro
 galerts is a Python client for managing `Google Alerts
 <http://www.google.com/alerts>`_. Currently it resorts to scraping html from
 Google's web interface since there is as of yet no public API. If they ever
-decide to publish one, galerts will promptly switch over to using it.
+decide to publish one, galerts will switch to using it.
 
 Please find `galerts on github <http://github.com/jab/galerts>`_
 if you have any questions or would like to collaborate.
@@ -17,8 +17,7 @@ if you have any questions or would like to collaborate.
 Usage
 -----
 
-Using galerts should be pretty straightforward. Just create a manager for a
-given account::
+First create an alerts manager for a given account::
 
     >>> import galerts
     >>> gam = galerts.GAlertsManager('cornelius@gmail.com', 'p4ssw0rd')
@@ -27,7 +26,7 @@ given account::
 sent over a secure connection and then discarded.)
 
 Now you can access the existing alerts for that account via the :attr:`alerts`
-property, which provides an iterator::
+property, which provides an iterator of :class:`Alert` objects::
 
     >>> list(gam.alerts)
     [<Alert for "Corner Confectionary" at ...>]
@@ -82,7 +81,7 @@ the changes stuck::
     'feed'
 
 Google Alerts feeds update continuously, and our alert object's :attr:`freq`
-attributed has been updated to reflect this::
+attribute has been updated to reflect this::
 
     >>> alert.freq
     'as-it-happens'
@@ -122,7 +121,7 @@ changing the feed alert we created to an email alert::
 
 And now::
 
-    >>> alert = next(gam.alerts) # just to guarantee we have a fresh object
+    >>> alert = next(gam.alerts) # get a fresh object just to prove it
     >>> str(alert)
     '<Alert query="Cake Man Cornelius" type="Comprehensive" freq="once a day" deliver="Email">'
     >>> alert.feedurl
