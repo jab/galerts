@@ -7,7 +7,9 @@ except ImportError:
 
 version = '0.1.2'
 try:
-    long_description = open('README.rst').read()
+    doc_dir = os.path.join(os.path.dirname(__file__), 'docs')
+    readme = open(os.path.join(doc_dir, 'README.rst'))
+    long_description = readme.read()
 except IOError:
     long_description = """\
 galerts
@@ -22,7 +24,7 @@ Using galerts should be pretty straightforward. Check out the README and the
 module itself for documentation.
 
 Please find `galerts on github <http://github.com/jab/galerts>`_ if you would
-like to collaborate!
+like to collaborate.
 """
 
 setup(
