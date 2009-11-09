@@ -100,7 +100,10 @@ class Alert(Hashable):
     You should not create :class:`Alert` objects explicitly; the
     :class:`GAlertsManager` will create them for you. You can then access
     alert objects via :attr:`GAlertsManager.alerts` to e.g. update their
-    attributes and pass them back to the manager for saving.
+    attributes and pass them back to the manager for saving. To create a new
+    alert, use :attr:`GAlertsManager.create`, and when you next access
+    :attr:`GAlertsManager.alerts` you'll find an :class:`Alert` object there
+    for the alert you just created.
     """
     def __init__(self, email, s, query, type, freq, deliver, feedurl=None):
         """
