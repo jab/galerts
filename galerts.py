@@ -152,12 +152,12 @@ class Alert(Hashable):
         For feed alerts, returns the url of the feed results are delivered to.
         For email alerts, returns ``None``.
 
-        **NOTE: If you change an :class:`Alert` object from a feed alert to
+        **NOTE:** If you change an :class:`Alert` object from a feed alert to
         an email alert (or vice versa) via :attr:`Alert.deliver`, the value of
         :attr:`Alert.feedurl` is not updated. You must pass the alert to
         :attr:`GAlertsManager.update` to save the changes and then get a
         fresh :class:`Alert` object from :attr:`GAlertsManager.alerts` to get
-        the up-to-date feed url.**
+        the up-to-date feed url.
         """
         return self._feedurl
 
