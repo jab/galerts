@@ -42,11 +42,11 @@ DELIVER_TYPES = {
     DELIVER_FEED: DELIVER_DEFAULT_VAL,
     }
 
-#: Use this value for Alert.freq to indicate delivery in real time
+#: Use this value for :attr:`Alert.freq` to indicate delivery in real time
 FREQ_AS_IT_HAPPENS = 'as-it-happens'
-#: Use this value for Alert.freq to indicate delivery once a day
+#: Use this value for :attr:`Alert.freq` to indicate delivery once a day
 FREQ_ONCE_A_DAY = 'once a day'
-#: Use this value for Alert.freq to indicate delivery once a week
+#: Use this value for :attr:`Alert.freq` to indicate delivery once a week
 FREQ_ONCE_A_WEEK = 'once a week'
 #: maps available alert frequencies to the values Google uses for them
 ALERT_FREQS = {
@@ -55,17 +55,17 @@ ALERT_FREQS = {
     FREQ_ONCE_A_WEEK: '6',
     }
 
-#: Use this value for Alert.type to indicate news results
+#: Use this value for :attr:`Alert.type` to indicate news results
 TYPE_NEWS = 'News'
-#: Use this value for Alert.type to indicate blog results
+#: Use this value for :attr:`Alert.type` to indicate blog results
 TYPE_BLOGS = 'Blogs'
-#: Use this value for Alert.type to indicate web results
+#: Use this value for :attr:`Alert.type` to indicate web results
 TYPE_WEB = 'Web'
-#: Use this value for Alert.type to indicate comprehensive results
+#: Use this value for :attr:`Alert.type` to indicate comprehensive results
 TYPE_COMPREHENSIVE = 'Comprehensive'
-#: Use this value for Alert.type to indicate video results
+#: Use this value for :attr:`Alert.type` to indicate video results
 TYPE_VIDEO = 'Video'
-#: Use this value for Alert.type to indicate groups results
+#: Use this value for :attr:`Alert.type` to indicate groups results
 TYPE_GROUPS = 'Groups'
 #: maps available alert types to the values Google uses for them
 ALERT_TYPES = {
