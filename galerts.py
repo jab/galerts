@@ -92,7 +92,6 @@ class UnexpectedResponseError(Exception):
         self.resp_headers = headers
         self.resp_body = body
 
-
 class Alert(Hashable):
     """
     Models a Google Alert.
@@ -107,8 +106,7 @@ class Alert(Hashable):
     """
     def __init__(self, email, s, query, type, freq, deliver, feedurl=None):
         """
-        :param email: an email address of the Google account associated with
-            this alert
+        :param email: the email address of the manager that created this alert
         :param s: the hidden input "s" value Google associates with this alert;
             you shouldn't ever have to worry about setting or getting this, it's
             used internally by :class:`GAlertsManager` to save changes to Google
@@ -134,14 +132,33 @@ class Alert(Hashable):
 
     @property
     def email(self):
+        """
+        Returns the email address of the manager that created this alert.
+        """
         return self._email
 
     @property
     def s(self):
+        """
+        Returns the hidden input "s" value Google associates with this alert.
+        Used internally by :class:`GAlertsManager` to save changes to Google;
+        you shouldn't ever need this.
+        """
         return self._s
 
     @property
     def feedurl(self):
+        """
+        For feed alerts, returns the url of the feed results are delivered to.
+        For email alerts, returns ``None``.
+
+        **NOTE: If you change an :class:`Alert` object from a feed alert to
+        an email alert (or vice versa) via :attr:`Alert.deliver`, the value of
+        :attr:`Alert.feedurl` is not updated. You must pass the alert to
+        :attr:`GAlertsManager.update` to save the changes and then get a
+        fresh :class:`Alert` object from :attr:`GAlertsManager.alerts` to get
+        the up-to-date feed url.**
+        """
         return self._feedurl
 
     def _eqattrs(self, query, type, freq, deliver):
@@ -150,9 +167,6 @@ class Alert(Hashable):
         """
         return (self.query == query and self.type == type and
             self.freq == freq and self.deliver == deliver)
-
-    def __getattr__(self, attr):
-        object.__getattr__(self, attr)
 
     def __setattr__(self, attr, value):
         """
@@ -163,8 +177,11 @@ class Alert(Hashable):
             raise ValueError('Illegal value for Alert.freq: "%s"' % value)
         if attr == 'type' and value not in ALERT_TYPES:
             raise ValueError('Illegal value for Alert.type: "%s"' % value)
-        if attr == 'deliver' and value not in DELIVER_TYPES:
-            raise ValueError('Illegal value for Alert.deliver: "%s"' % value)
+        if attr == 'deliver':
+            if value not in DELIVER_TYPES:
+                raise ValueError('Illegal value for Alert.deliver: "%s"' % value)
+            if self.deliver == DELIVER_EMAIL and value == DELIVER_FEED:
+                object.__setattr__(self, 'freq', FREQ_AS_IT_HAPPENS)
         object.__setattr__(self, attr, value)
 
     def __hash__(self):
@@ -435,6 +452,8 @@ def main():
                 type = alert.type
                 freq = alert.freq
                 deliver = alert.deliver
+                if deliver == DELIVER_FEED:
+                    deliver = alert.feedurl
                 num = '%d' % i
                 print num.rjust(2), ' ', query.ljust(20), type.ljust(14), freq.ljust(15), deliver
 
