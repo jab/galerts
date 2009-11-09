@@ -7,6 +7,7 @@ except ImportError:
 
 version = '0.1.2'
 try:
+    import os
     doc_dir = os.path.join(os.path.dirname(__file__), 'docs')
     readme = open(os.path.join(doc_dir, 'README.rst'))
     long_description = readme.read()
