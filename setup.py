@@ -36,7 +36,7 @@ setup(
     description="Python libary for managing Google Alerts",
     long_description=long_description,
     keywords='google, alerts, google alerts, news',
-    url='http://github.com/jab/galerts',
+    url='http://jab.github.com/galerts/',
     license='MIT',
     py_modules=['galerts'],
     zip_safe=True,
