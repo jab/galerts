@@ -281,8 +281,8 @@ class GAlertsManager(object):
     def alerts(self):
         """
         Queries Google on every access for the alerts associated with this
-        account, wraps them in :class:`Alert` objects, and returns an
-        iterable over them.
+        account, wraps them in :class:`Alert` objects, and returns a
+        generator you can use to iterate over them.
         """
         headers = {'Cookie': self.cookie}
         conn = HTTPConnection('www.google.com')
