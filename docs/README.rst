@@ -25,8 +25,9 @@ First create an alerts manager for a given account::
 (Note: The plaintext password is used only to get a session cookie, i.e. it's
 sent over a secure connection and then discarded.)
 
-Now you can access the existing alerts for that account via the :attr:`alerts`
-property, which provides an iterator of :class:`Alert` objects::
+Now you can access the existing alerts for that account via the ``alerts``
+property, which provides a generator you can use to iterate over corresponding
+``Alert`` objects::
 
     >>> list(gam.alerts)
     [<Alert for "Corner Confectionary" at ...>]
@@ -80,7 +81,7 @@ the changes stuck::
     >>> alert.deliver
     'feed'
 
-Google Alerts feeds update continuously, and our alert object's :attr:`freq`
+Google Alerts feeds update continuously, and our alert object's ``freq``
 attribute has been updated to reflect this::
 
     >>> alert.freq
