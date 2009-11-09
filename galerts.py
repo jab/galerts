@@ -211,7 +211,6 @@ class GAlertsManager(object):
             email += '@gmail.com'
         self.email = email
         self._signin(password)
-        self._alerts = {}
 
     def _signin(self, password):
         """
