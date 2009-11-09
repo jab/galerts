@@ -29,7 +29,7 @@ from operator import itemgetter
 from urllib import urlencode
 
 
-# these values should match those used in the Google Alerts web interface:
+# these values must match those used in the Google Alerts web interface:
 
 #: Use this value to indicate delivery via email
 DELIVER_EMAIL = 'Email'
@@ -148,7 +148,6 @@ class Alert(Hashable):
         return (self.query == query and self.type == type and
             self.freq == freq and self.deliver == deliver)
 
-
     def __getattr__(self, attr):
         object.__getattr__(self, attr)
 
@@ -166,7 +165,8 @@ class Alert(Hashable):
         object.__setattr__(self, attr, value)
 
     def __hash__(self):
-        return hash(self._s)
+        return hash((self._s, self.query, self.type, self.freq, self.deliver,
+            self._feedurl))
 
     def __eq__(self, other):
         return all(getattr(self, attr) == getattr(other, attr) for attr in
