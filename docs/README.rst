@@ -59,7 +59,7 @@ And now it should be updated::
 You may have noticed that the ``Alert.query`` property returns a ``unicode``
 value. Google allows alert queries with non-ASCII characters, so we support
 this via unicode. For convenience, you can set ``Alert.query`` to a ``string``
-instead of a ``unicode`` as we did above and it will transformed to a
+instead of a ``unicode`` as we did above and it will be transformed to a
 ``unicode`` automatically; just be sure that ``unicode(yourstring)`` doesn't
 fail. The query is encoded to *utf-8* when it is sent to Google.
 
