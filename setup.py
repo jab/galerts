@@ -5,7 +5,7 @@ except ImportError:
     use_setuptools()
     from setuptools import setup, find_packages
 
-version = '0.1.2'
+version = '0.1.3'
 try:
     import os
     doc_dir = os.path.join(os.path.dirname(__file__), 'docs')
