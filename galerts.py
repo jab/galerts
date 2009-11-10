@@ -22,7 +22,6 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 
 from BeautifulSoup import BeautifulSoup
-from collections import Hashable
 from getpass import getpass
 from httplib import HTTPConnection, HTTPSConnection
 from operator import itemgetter
@@ -95,7 +94,17 @@ class UnexpectedResponseError(Exception):
         self.resp_headers = headers
         self.resp_body = body
 
-class Alert(Hashable):
+def safe_urlencode(params):
+    result = []
+    for k, v in params.iteritems():
+        if not isinstance(k, str):
+            k = k.encode('utf-8')
+        if not isinstance(v, str):
+            v = v.encode('utf-8')
+        result.append((k, v))
+    return urlencode(result)
+
+class Alert(object):
     """
     Models a Google Alert.
 
@@ -310,7 +319,7 @@ class GAlertsManager(object):
             conn.close()
         soup = BeautifulSoup(body)
         sig = soup.findChild('input', attrs={'name': 'sig'})['value']
-        return sig
+        return str(sig)
 
     def _scrape_sig_es_hps(self, alert):
         """
@@ -330,8 +339,11 @@ class GAlertsManager(object):
             conn.close()
         soup = BeautifulSoup(body)
         sig = soup.findChild('input', attrs={'name': 'sig'})['value']
+        sig = str(sig)
         es = soup.findChild('input', attrs={'name': 'es'})['value']
+        es = str(es)
         hps = soup.findChild('input', attrs={'name': 'hps'})['value']
+        hps = str(hps)
         return sig, es, hps
 
     @property
@@ -402,8 +414,8 @@ class GAlertsManager(object):
         """
         headers = {'Cookie': self.cookie,
                    'Content-type': 'application/x-www-form-urlencoded; charset=utf-8'}
-        params = urlencode({
-            'q': query.encode('utf-8'),
+        params = safe_urlencode({
+            'q': query,
             'e': DELIVER_FEED if feed else self.email,
             'f': ALERT_FREQS[FREQ_AS_IT_HAPPENS] if feed else freq,
             't': ALERT_TYPES[type],
@@ -430,14 +442,14 @@ class GAlertsManager(object):
             'e': self.email,
             'es': es,
             'hps': hps,
-            'q': alert.query.encode('utf-8'),
+            'q': alert.query,
             'se': 'Save',
             'sig': sig,
             't': ALERT_TYPES[alert.type],
             }
         if alert.deliver == DELIVER_EMAIL:
             params['f'] = ALERT_FREQS[alert.freq]
-        params = urlencode(params)
+        params = safe_urlencode(params)
         conn = HTTPConnection('www.google.com')
         conn.request('POST', '/alerts/save?hl=en&gl=us', params, headers)
         response = conn.getresponse()
