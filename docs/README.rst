@@ -61,7 +61,7 @@ value. Google allows alert queries with non-ASCII characters, so we support
 this via unicode. For convenience, you can set ``Alert.query`` to a ``string``
 instead of a ``unicode`` as we did above and it will be transformed to a
 ``unicode`` automatically; just be sure that ``unicode(yourstring)`` doesn't
-fail. The query is encoded to *utf-8* when it is sent to Google.
+fail.
 
 As we see above, every time you access ``gam.alerts``, ``GAlertsManager`` asks
 Google for your alerts and creates new ``Alert`` objects with the information
@@ -73,9 +73,9 @@ a snapshot of the information Google has at the time it was requested, rather
 than as canonical representations of the data which are kept up-to-date.
 ``Alert`` objects are disposable; they're used merely to wrap some string
 attributes. As such, you can pass any old ``Alert`` object to ``gam.update``
-and the manager will tell Google to update its information to match the alert
-passed in. For convenience, ``Alert.__eq__`` has been overridden so that two
-different ``Alert`` objects with the same attribute values compare equal.
+and the manager will tell Google to update its information to match the object
+passed in. ``Alert.__eq__`` has been overridden so that two different
+``Alert`` objects with the same attribute values compare equal.
 
 Keeping this in mind, let's return to our old ``Alert`` object. Let's say we'd
 like to change some other attributes::
@@ -100,13 +100,13 @@ but we'll have to grab a fresh ``Alert`` object if we want to know the url
 of the alert's feed::
 
     >>> gam.update(alert)
-    >>> alert.feedurl # this is now stale:
+    >>> alert.feedurl # this is now stale
     None
     >>> oldalert = alert # so get a fresh one
     >>> alert = next(gam.alerts)
     >>> alert.feedurl # and now it's up-to-date:
     'http://www.google.com/alerts/feed/...'
-    >>> alert == oldalert # feedurls don't match, so:
+    >>> alert == oldalert # feedurls don't match
     False
 
 The other properties are as we left them::
@@ -125,7 +125,7 @@ property reflects this::
 
     >>> alert.freq
     'as-it-happens'
-    >>> oldalert.freq # stale:
+    >>> oldalert.freq # stale
     'once a week'
 
 Let's say we no longer want this alert. To delete it, do::
