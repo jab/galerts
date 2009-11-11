@@ -542,6 +542,8 @@ def main():
                     print '  Bad input: enter a number from 0 to %d' % (len(alerts) - 1)
 
         def prompt_query(default=None):
+            if isinstance(default, unicode):
+                default = default.encode('utf-8')
             while True:
                 if default is not None:
                     prompt = '  Query (<Enter> for "%s"): ' % default
