@@ -231,11 +231,12 @@ class Alert(object):
             ('_s', 'query', 'type', 'freq', 'deliver', '_feedurl'))
 
     def __repr__(self):
-        return '<Alert for "%s" at %s>' % (
+        return '<%s for "%s" at %s>' % (self.__class__.__name__,
             self.query.encode('utf-8'), hex(id(self)))
 
     def __str__(self):
-        return '<Alert query="%s" type="%s" freq="%s" deliver="%s">' % (
+        return '<%s query="%s" type="%s" freq="%s" deliver="%s">' % (
+            self.__class__.__name__,
             self.query.encode('utf-8'), self.type, self.freq, self.deliver)
 
 
