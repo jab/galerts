@@ -222,13 +222,6 @@ class Alert(object):
         """
         return self._feedurl
 
-    def _eqattrs(self, query, type, freq, deliver):
-        """
-        Convenience function used internally by :class:`GAlertsManager`
-        """
-        return (self.query == query and self.type == type and
-            self.freq == freq and self.deliver == deliver)
-
     def __hash__(self):
         return hash((self._s, self.query, self.type, self.freq, self.deliver,
             self._feedurl))
