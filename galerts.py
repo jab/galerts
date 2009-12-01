@@ -357,7 +357,7 @@ class GAlertsManager(object):
                 raise UnexpectedResponseError(response.status, response.getheaders(), body)
         finally:
             conn.close()
-        soup = BeautifulSoup(body)
+        soup = BeautifulSoup(body, convertEntities=BeautifulSoup.HTML_ENTITIES)
         trs = soup.findAll('tr', attrs={'class': 'data_row'})
         for tr in trs:
             tds = tr.findAll('td')
@@ -599,6 +599,10 @@ def main():
                 continue
 
             print '\n%s' % action
+
+            if action == 'Quit':
+                break
+
             alerts = list(gam.alerts)
 
             if action == 'List Alerts':
@@ -640,9 +644,6 @@ def main():
                 except UnexpectedResponseError, e:
                     print '\nCould not delete alert.'
                     import pdb; pdb.set_trace()
-
-            elif action == 'Quit':
-                break
 
             else:
                 print 'code took unexpected branch... typo?'
