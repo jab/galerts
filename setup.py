@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-version = '0.1.3'
+version = '0.1.4'
 try:
     import os
     doc_dir = os.path.join(os.path.dirname(__file__), 'docs')
