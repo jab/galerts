@@ -12,6 +12,7 @@ Contents:
     :maxdepth: 2
 
     README <README.rst>
+    Change log <CHANGES.rst>
     Module Documentation <galerts.rst>
 
 Indices and tables

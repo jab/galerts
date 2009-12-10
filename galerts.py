@@ -363,7 +363,7 @@ class GAlertsManager(object):
             tds = tr.findAll('td')
             # annoyingly, if you have no alerts, Google tells you this in
             # a <tr> with class "data_row" in a single <td>
-            if len(tds) < 5:
+            if len(tds) < 6:
                 # we continue rather than break because there could be
                 # subsequent iterations for other email addresses associated
                 # with this account which do have alerts
@@ -371,8 +371,9 @@ class GAlertsManager(object):
             tdcheckbox = tds[0]
             tdquery = tds[1]
             tdtype = tds[2]
-            tddeliver = tds[3]
-            tdfreq = tds[4]
+            tdfreq = tds[3]
+            # XXX tdnresults = tds[4]
+            tddeliver = tds[5]
             s = tdcheckbox.findChild('input')['value']
             s = str(s)
             query = tdquery.findChild('a').next
