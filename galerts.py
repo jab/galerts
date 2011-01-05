@@ -159,9 +159,8 @@ class Alert(object):
     query = property(_query_get, _query_set, doc="""\
         The search terms this alert will match.
 
-        :raises: :exc:`ValueError` if value is not ``unicode`` or
-            ``unicode(value)`` fails, or if its length exceeds
-            :attr:`QUERY_MAXLEN`
+        :raises ValueError: if value is not ``unicode`` or ``unicode(value)``
+            fails, or if its length exceeds :attr:`QUERY_MAXLEN`
         """)
 
     def _deliver_get(self):
@@ -175,7 +174,7 @@ class Alert(object):
     deliver = property(_deliver_get, _deliver_set, doc="""\
         The delivery method for this alert.
 
-        :raises: :exc:`ValueError` if value is not in :attr:`DELIVER_TYPES`
+        :raises ValueError: if value is not in :attr:`DELIVER_TYPES`
         """)
 
     def _freq_get(self):
@@ -189,7 +188,7 @@ class Alert(object):
     freq = property(_freq_get, _freq_set, doc="""\
         The frequency with which results are delivered for this alert.
 
-        :raises: :exc:`ValueError` if value is not in :attr:`ALERT_FREQS`
+        :raises ValueError: if value is not in :attr:`ALERT_FREQS`
         """)
 
     def _vol_get(self):
@@ -203,7 +202,7 @@ class Alert(object):
     vol = property(_vol_get, _vol_set, doc="""\
         The volume of results delivered for this alert.
 
-        :raises: :exc:`ValueError` if value is not in :attr:`ALERT_VOLS`
+        :raises ValueError: if value is not in :attr:`ALERT_VOLS`
         """)
 
     def _type_get(self):
@@ -217,7 +216,7 @@ class Alert(object):
     type = property(_type_get, _type_set, doc="""\
         The type of the results this alert delivers.
 
-        :raises: :exc:`ValueError` if value is not in :attr:`ALERT_TYPES`
+        :raises ValueError: if value is not in :attr:`ALERT_TYPES`
         """)
 
     @property
@@ -278,15 +277,16 @@ class GAlertsManager(object):
     """
     def __init__(self, email, password):
         """
-        :param email: sign in using this email address; if there is no @
-            symbol in the value, "@gmail.com" will be appended to it
+        :param email: sign in using this email address. If there is no @
+            symbol in the value, "@gmail.com" will be appended.
         :param password: plaintext password, used only to get a session
-            cookie (i.e. it's sent over a secure connection and then discarded)
-        :raises: :exc:`SignInError` if Google responds with "403 Forbidden" to
+            cookie. Sent over a secure connection and then discarded.
+
+        :raises SignInError: if Google responds with "403 Forbidden" to
             our request to sign in
-        :raises: :exc:`UnexpectedResponseError` if the status code of Google's
+        :raises UnexpectedResponseError: if the status code of Google's
               response is unrecognized (neither 403 nor 200)
-        :raises: :exc:`socket.error` e.g. if there is no network connection
+        :raises socket.error: e.g. if there is no network connection
         """
         if '@' not in email:
             email += '@gmail.com'
