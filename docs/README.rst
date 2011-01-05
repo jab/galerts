@@ -8,10 +8,17 @@ Intro
 galerts is a Python client for managing `Google Alerts
 <http://www.google.com/alerts>`_. Currently it resorts to scraping html from
 Google's web interface since there is as of yet no public API. If they ever
-decide to publish one, galerts will switch to using it.
+decide to publish one, galerts will switch to using it, unless Google itself
+includes it in their `gdata-python-client <http://code.google.com/p/gdata-python-client/>`_,
+in which case galerts will be obsolete.
 
-Please find `galerts on github <http://github.com/jab/galerts>`_
-if you have any questions or would like to collaborate.
+---------
+Community
+---------
+
+galerts is `on github <http://github.com/jab/galerts>`_ and there is also a
+`Google group <http://groups.google.com/group/galerts>`_ if you have any
+questions or would like to collaborate.
 
 -----
 Usage
@@ -166,3 +173,11 @@ And now::
     '<Alert query="Cake Man Cornelius" type="Comprehensive" freq="once a day" deliver="Email">'
     >>> alert.feedurl
     None
+
+------------------------
+Multiple Email Addresses
+------------------------
+
+Google Alerts allows you to create a different set of alerts for each email
+address associated with a Google account, but galerts currently only supports
+the account's primary email address.
