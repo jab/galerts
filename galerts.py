@@ -58,26 +58,26 @@ ALERT_FREQS = {
     FREQ_ONCE_A_WEEK: '6',
     }
 
+#: Use this value for :attr:`Alert.type` to indicate all results
+TYPE_EVERYTHING = 'Everything'
 #: Use this value for :attr:`Alert.type` to indicate news results
 TYPE_NEWS = 'News'
 #: Use this value for :attr:`Alert.type` to indicate blog results
 TYPE_BLOGS = 'Blogs'
-#: Use this value for :attr:`Alert.type` to indicate web results
-TYPE_WEB = 'Web'
-#: Use this value for :attr:`Alert.type` to indicate comprehensive results
-TYPE_COMPREHENSIVE = 'Comprehensive'
+#: Use this value for :attr:`Alert.type` to indicate realtime results
+TYPE_REALTIME = 'Realtime'
 #: Use this value for :attr:`Alert.type` to indicate video results
 TYPE_VIDEO = 'Video'
-#: Use this value for :attr:`Alert.type` to indicate groups results
-TYPE_GROUPS = 'Groups'
+#: Use this value for :attr:`Alert.type` to indicate discussion results
+TYPE_DISCUSSIONS = 'Discussions'
 #: maps available alert types to the values Google uses for them
 ALERT_TYPES = {
+    TYPE_EVERYTHING: '7',
     TYPE_NEWS: '1',
     TYPE_BLOGS: '4',
-    TYPE_WEB: '2',
-    TYPE_COMPREHENSIVE: '7',
+    TYPE_REALTIME: '20',
     TYPE_VIDEO: '9',
-    TYPE_GROUPS: '8',
+    TYPE_DISCUSSIONS: '8',
     }
 
 class SignInError(Exception):
