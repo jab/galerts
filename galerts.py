@@ -25,11 +25,10 @@ import re
 import urllib2
 from BeautifulSoup import BeautifulSoup
 from getpass import getpass
-from operator import itemgetter
 from urllib import urlencode
 
 
-# these values must match those used in the Google Alerts web interface:
+# {{{ these values must match those used in the Google Alerts web interface:
 
 #: The maximum length of an alert query
 QUERY_MAXLEN = 2048
@@ -58,6 +57,16 @@ ALERT_FREQS = {
     FREQ_ONCE_A_WEEK: '6',
     }
 
+#: Use this value for an alert volume of only the best results
+VOL_ONLY_BEST = 'Only the best results'
+#: Use this value for an alert volume of all results
+VOL_ALL = 'All results'
+#: maps available alert volumes to the values Google uses for them
+ALERT_VOLS = {
+    VOL_ONLY_BEST: '0',
+    VOL_ALL: '1',
+    }
+
 #: Use this value for :attr:`Alert.type` to indicate all results
 TYPE_EVERYTHING = 'Everything'
 #: Use this value for :attr:`Alert.type` to indicate news results
@@ -79,6 +88,7 @@ ALERT_TYPES = {
     TYPE_VIDEO: '9',
     TYPE_DISCUSSIONS: '8',
     }
+# }}}
 
 class SignInError(Exception):
     """
@@ -117,15 +127,17 @@ class Alert(object):
     :attr:`GAlertsManager.alerts` you'll find an :class:`Alert` object there
     for the alert you just created.
     """
-    def __init__(self, email, s, query, type, freq, deliver, feedurl=None):
+    def __init__(self, email, s, query, type, freq, vol, deliver, feedurl=None):
         assert type in ALERT_TYPES
         assert freq in ALERT_FREQS
+        assert vol in ALERT_VOLS
         assert deliver in DELIVER_TYPES
         self._email = email
         self._s = s
         self._query = query
         self._type = type
         self._freq = freq
+        self._vol = vol
         self._deliver = deliver
         self._feedurl = feedurl
 
@@ -164,7 +176,6 @@ class Alert(object):
         The delivery method for this alert.
 
         :raises: :exc:`ValueError` if value is not in :attr:`DELIVER_TYPES`
-            (:attr:`DELIVER_FEED`, :attr:`DELIVER_EMAIL`)
         """)
 
     def _freq_get(self):
@@ -178,9 +189,21 @@ class Alert(object):
     freq = property(_freq_get, _freq_set, doc="""\
         The frequency with which results are delivered for this alert.
 
-        :raises: :exc:`ValueError` if value is not in :attr:`ALERT_FREQS`,
-            (:attr:`FREQ_AS_IT_HAPPENS`, :attr:`FREQ_ONCE_A_DAY`,
-            :attr:`FREQ_ONCE_A_WEEK`)
+        :raises: :exc:`ValueError` if value is not in :attr:`ALERT_FREQS`
+        """)
+
+    def _vol_get(self):
+        return self._vol
+
+    def _vol_set(self, value):
+        if value not in ALERT_VOLS:
+            raise ValueError('Illegal value for Alert.vol: %r' % value)
+        self._vol = value
+
+    vol = property(_vol_get, _vol_set, doc="""\
+        The volume of results delivered for this alert.
+
+        :raises: :exc:`ValueError` if value is not in :attr:`ALERT_VOLS`
         """)
 
     def _type_get(self):
@@ -287,7 +310,7 @@ class GAlertsManager(object):
             r'name="GALX"\s*value="([^"]+)"',
             login_page_contents,
             re.IGNORECASE,
-        )
+            )
         galx_value = galx_match_obj.group(1) \
             if galx_match_obj.group(1) is not None else ''
 
@@ -304,13 +327,13 @@ class GAlertsManager(object):
         if resp_code == 403:
             raise SignInError(
                 'Got 403 Forbidden; bad email/password combination?'
-            )
+                )
         if resp_code != 200:
             raise UnexpectedResponseError(
                 resp_code,
                 response.info().headers,
                 body,
-            )
+                )
 
     def _scrape_sig(self, path='/alerts'):
         """
@@ -327,7 +350,7 @@ class GAlertsManager(object):
                 resp_code,
                 response.info().headers,
                 body,
-            )
+                )
         soup = BeautifulSoup(body)
         sig = soup.findChild('input', attrs={'name': 'sig'})['value']
         return str(sig)
@@ -347,15 +370,12 @@ class GAlertsManager(object):
                 resp_code,
                 response.info().headers,
                 body,
-            )
+                )
         soup = BeautifulSoup(body)
         sig = soup.findChild('input', attrs={'name': 'sig'})['value']
-        sig = str(sig)
         es = soup.findChild('input', attrs={'name': 'es'})['value']
-        es = str(es)
         hps = soup.findChild('input', attrs={'name': 'hps'})['value']
-        hps = str(hps)
-        return sig, es, hps
+        return tuple(str(i) for i in (sig, es, hps))
 
     @property
     def alerts(self):
@@ -386,7 +406,7 @@ class GAlertsManager(object):
             tdquery = tds[1]
             tdtype = tds[2]
             tdfreq = tds[3]
-            # XXX tdnresults = tds[4]
+            tdvol = tds[4]
             tddeliver = tds[5]
             s = tdcheckbox.findChild('input')['value']
             s = str(s)
@@ -397,6 +417,8 @@ class GAlertsManager(object):
             # yes, they actually use <font> tags. really.
             freq = tdfreq.findChild('font').next
             freq = str(freq)
+            vol = tdvol.findChild('font').next
+            vol = str(vol)
             deliver = tddeliver.findChild('font').next
             if deliver == DELIVER_EMAIL:
                 feedurl = None
@@ -406,10 +428,10 @@ class GAlertsManager(object):
                 feedurl = str(feedurl)
                 deliver = DELIVER_FEED
             email = self.email # scrape out of html if and when we support accounts with multiple addresses
-            yield Alert(email, s, query, type, freq, deliver, feedurl=feedurl)
+            yield Alert(email, s, query, type, freq, vol, deliver, feedurl=feedurl)
     
-    def create(self, query, type, feed=True,
-            freq=ALERT_FREQS[FREQ_ONCE_A_DAY]):
+    def create(self, query, type, feed=True, freq=FREQ_ONCE_A_DAY,
+            vol=VOL_ONLY_BEST):
         """
         Creates a new alert.
 
@@ -419,13 +441,16 @@ class GAlertsManager(object):
         :param freq: a value in :attr:`ALERT_FREQS` indicating how often results
             should be delivered; used only for email alerts (feed alerts are
             updated in real time). Defaults to :attr:`FREQ_ONCE_A_DAY`.
+        :param vol: a value in :attr:`ALERT_VOLS` indicating volume of results
+            to be delivered. Defaults to :attr:`VOL_ONLY_BEST`.
         """
         url = 'http://www.google.com/alerts/create?hl=en&gl=us'
         params = safe_urlencode({
             'q': query,
             'e': DELIVER_FEED if feed else self.email,
-            'f': ALERT_FREQS[FREQ_AS_IT_HAPPENS] if feed else freq,
+            'f': ALERT_FREQS[FREQ_AS_IT_HAPPENS if feed else freq],
             't': ALERT_TYPES[type],
+            'l': ALERT_VOLS[vol],
             'sig': self._scrape_sig(),
         })
         response = self.opener.open(url, params)
@@ -434,7 +459,7 @@ class GAlertsManager(object):
             raise UnexpectedResponseError(resp_code,
                 response.info().headers,
                 response.read(),
-            )
+                )
 
     def update(self, alert):
         """
@@ -451,6 +476,7 @@ class GAlertsManager(object):
             'se': 'Save',
             'sig': sig,
             't': ALERT_TYPES[alert.type],
+            'l': ALERT_VOLS[alert.vol],
             }
         if alert.deliver == DELIVER_EMAIL:
             params['f'] = ALERT_FREQS[alert.freq]
@@ -462,7 +488,7 @@ class GAlertsManager(object):
                 resp_code,
                 response.info().headers,
                 response.read(),
-            )
+                )
 
     def delete(self, alert):
         """
@@ -482,7 +508,7 @@ class GAlertsManager(object):
                 resp_code,
                 response.info().headers,
                 response.read(),
-            )
+                )
 
 
 def main():
@@ -506,25 +532,26 @@ def main():
 
         def print_alerts(alerts):
             print
-            print ' #   Query                Type           Frequency       Deliver to'
-            print ' =   =====                ====           =========       =========='
+            print ' #   Query                Type           How often       Volume                    Deliver to'
+            print ' =   =====                ====           =========       ======                    =========='
             for i, alert in enumerate(alerts):
                 query = alert.query
                 if len(query) > 20:
                     query = query[:17] + '...'
                 type = alert.type
                 freq = alert.freq
+                vol = alert.vol
                 deliver = alert.deliver
                 if deliver == DELIVER_FEED:
                     deliver = alert.feedurl
                 num = '%d' % i
-                print num.rjust(2), ' ', query.ljust(20), type.ljust(14), freq.ljust(15), deliver
+                print num.rjust(2), ' ', query.ljust(20), type.ljust(14), freq.ljust(15), vol.ljust(25), deliver
 
         def prompt_type(default=None):
             while True:
                 print '  Alert type:'
                 print '\n'.join('    %s. %s' % (v, k) for (k, v) in sorted(
-                    ALERT_TYPES.iteritems(), key=itemgetter(1)))
+                    ALERT_TYPES.iteritems(), key=lambda i: int(i[1])))
                 if default is not None:
                     prompt = '    Choice (<Enter> for "%s"): ' % default
                 else:
@@ -536,6 +563,23 @@ def main():
                 if default is not None:
                     return default
                 print '  Invalid type, try again\n'
+
+        def prompt_vol(default=None):
+            while True:
+                print '  Alert volume:'
+                print '\n'.join('    %s. %s' % (v, k) for (k, v) in sorted(
+                    ALERT_VOLS.iteritems(), key=lambda i: int(i[1])))
+                if default is not None:
+                    prompt = '    Choice (<Enter> for "%s"): ' % default
+                else:
+                    prompt = '    Choice: '
+                vol = raw_input(prompt)
+                for k, v in ALERT_VOLS.iteritems():
+                    if v == vol:
+                        return k
+                if default is not None:
+                    return default
+                print '  Invalid volume, try again\n'
 
         def prompt_alert(alerts):
             while True:
@@ -582,7 +626,7 @@ def main():
             while True:
                 print '  Alert frequency:'
                 print '\n'.join('    %s. %s' % (v, k) for (k, v) in sorted(
-                    ALERT_FREQS.iteritems(), key=itemgetter(1)))
+                    ALERT_FREQS.iteritems(), key=lambda i: int(i[1])))
                 if default is not None:
                     prompt = '    Choice (<Enter> for "%s"): ' % default
                 else:
@@ -623,8 +667,9 @@ def main():
                 type = prompt_type()
                 feed = prompt_deliver() == DELIVER_FEED
                 freq = ALERT_FREQS[FREQ_AS_IT_HAPPENS] if feed else prompt_freq()
+                vol = prompt_vol()
                 try:
-                    gam.create(query, type, feed=feed, freq=freq)
+                    gam.create(query, type, feed=feed, freq=freq, vol=vol)
                     print '\nAlert created.'
                 except UnexpectedResponseError, e:
                     print '\nCould not create alert.'
@@ -638,6 +683,7 @@ def main():
                 alert.deliver = prompt_deliver(current=alert.deliver)
                 alert.freq = FREQ_AS_IT_HAPPENS if alert.deliver != DELIVER_EMAIL \
                     else prompt_freq(default=alert.freq)
+                alert.vol = prompt_vol(default=alert.vol)
                 try:
                     gam.update(alert)
                     print '\nAlert modified.'
