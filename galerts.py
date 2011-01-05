@@ -1,4 +1,4 @@
-# Copyright (c) 2009 Josh Bronson and contributors
+# Copyright (c) 2010 Josh Bronson and contributors
 # 
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation
@@ -25,7 +25,6 @@ import re
 import urllib2
 from BeautifulSoup import BeautifulSoup
 from getpass import getpass
-from httplib import HTTPConnection, HTTPSConnection
 from operator import itemgetter
 from urllib import urlencode
 
