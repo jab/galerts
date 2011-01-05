@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+-------------------
+0.2dev (2011-01-05)
+-------------------
+
+Support changed authentication method (thanks Peter Sanchez) and new alert
+volume property.
+
 ------------------
 0.1.5 (2009-12-10)
 ------------------
