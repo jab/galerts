@@ -28,6 +28,8 @@ setup(
     version=version,
     author='Josh Bronson',
     author_email='jabronson@gmail.com',
+    maintainer='Peter Sanchez',
+    maintainer_email='patersanchez@gmail.com',
     description="Python libary for managing Google Alerts",
     long_description=long_description,
     keywords='google, alerts, google alerts, news',
