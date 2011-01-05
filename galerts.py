@@ -21,6 +21,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
+import re
+import urllib2
 from BeautifulSoup import BeautifulSoup
 from getpass import getpass
 from httplib import HTTPConnection, HTTPSConnection
@@ -270,30 +272,38 @@ class GAlertsManager(object):
         if '@' not in email:
             email += '@gmail.com'
         self.email = email
+        self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor())
+        urllib2.install_opener(self.opener)
         self._signin(password)
 
     def _signin(self, password):
         """
         Obtains a cookie from Google for an authenticated session.
         """
+        login_page_url = 'https://www.google.com/accounts/ServiceLogin'
+        authenticate_url = 'https://www.google.com/accounts/ServiceLoginAuth'
+
+        # Load login page
+        login_page_contents = self.opener.open(login_page_url).read()
+
+        # Find GALX value
+        galx_match_obj = re.search(r'name="GALX"\s*value="([^"]+)"', login_page_contents, re.IGNORECASE)
+        galx_value = galx_match_obj.group(1) if galx_match_obj.group(1) is not None else ''
+
         params = urlencode({
             'Email': self.email,
             'Passwd': password,
             'service': 'alerts',
+            'continue': 'http://www.google.com/alerts/manage?hl=en&gl=us',
+            'GALX': galx_value,
             })
-        headers = {'Content-type': 'application/x-www-form-urlencoded'}
-        conn = HTTPSConnection('www.google.com')
-        conn.request('POST', '/accounts/ClientLogin', params, headers)
-        response = conn.getresponse()
+        response = self.opener.open(authenticate_url, params)
+        resp_code = response.getcode()
         body = response.read()
-        try:
-            if response.status == 403:
-                raise SignInError('Got 403 Forbidden; bad email/password combination?')
-            if response.status != 200:
-                raise UnexpectedResponseError(response.status, response.getheaders(), body)
-            self.cookie = '; '.join(body.split('\n'))
-        finally:
-            conn.close()
+        if resp_code == 403:
+            raise SignInError('Got 403 Forbidden; bad email/password combination?')
+        if resp_code != 200:
+            raise UnexpectedResponseError(resp_code, [], body)
 
     def _scrape_sig(self, path='/alerts'):
         """
@@ -301,16 +311,12 @@ class GAlertsManager(object):
         prevent xss attacks, so we need to scrape this out and submit it along
         with any forms we POST.
         """
-        headers = {'Cookie': self.cookie}
-        conn = HTTPConnection('www.google.com')
-        conn.request('GET', path, None, headers)
-        response = conn.getresponse()
+        url = 'http://www.google.com%s' % path
+        response = self.opener.open(url)
+        resp_code = response.getcode()
         body = response.read()
-        try:
-            if response.status != 200:
-                raise UnexpectedResponseError(response.status, response.getheaders(), body)
-        finally:
-            conn.close()
+        if resp_code != 200:
+            raise UnexpectedResponseError(resp_code, [], body)
         soup = BeautifulSoup(body)
         sig = soup.findChild('input', attrs={'name': 'sig'})['value']
         return str(sig)
@@ -321,16 +327,12 @@ class GAlertsManager(object):
         and "hps" which must be scraped and passed along when modifying it
         along with the "sig" hidden input value to prevent xss attacks.
         """
-        headers = {'Cookie': self.cookie}
-        conn = HTTPConnection('www.google.com')
-        conn.request('GET', '/alerts/edit?hl=en&gl=us&s=%s' % alert._s, None, headers)
-        response = conn.getresponse()
+        url = 'http://www.google.com/alerts/edit?hl=en&gl=us&s=%s' % alert._s
+        response = self.opener.open(url)
+        resp_code = response.getcode()
         body = response.read()
-        try:
-            if response.status != 200:
-                raise UnexpectedResponseError(response.status, response.getheaders(), body)
-        finally:
-            conn.close()
+        if resp_code != 200:
+            raise UnexpectedResponseError(resp_code, [], body)
         soup = BeautifulSoup(body)
         sig = soup.findChild('input', attrs={'name': 'sig'})['value']
         sig = str(sig)
@@ -347,16 +349,13 @@ class GAlertsManager(object):
         account, wraps them in :class:`Alert` objects, and returns a generator
         you can use to iterate over them.
         """
-        headers = {'Cookie': self.cookie}
-        conn = HTTPConnection('www.google.com')
-        conn.request('GET', '/alerts/manage?hl=en&gl=us', None, headers)
-        response = conn.getresponse()
+        alerts_url = 'http://www.google.com/alerts/manage?hl=en&gl=us'
+        response = self.opener.open(alerts_url)
+        resp_code = response.getcode()
         body = response.read()
-        try:
-            if response.status != 200:
-                raise UnexpectedResponseError(response.status, response.getheaders(), body)
-        finally:
-            conn.close()
+        if resp_code != 200:
+            raise UnexpectedResponseError(resp_code, [], body)
+
         soup = BeautifulSoup(body, convertEntities=BeautifulSoup.HTML_ENTITIES)
         trs = soup.findAll('tr', attrs={'class': 'data_row'})
         for tr in trs:
@@ -407,8 +406,7 @@ class GAlertsManager(object):
             should be delivered; used only for email alerts (feed alerts are
             updated in real time)
         """
-        headers = {'Cookie': self.cookie,
-                   'Content-type': 'application/x-www-form-urlencoded; charset=utf-8'}
+        url = 'http://www.google.com/alerts/create?hl=en&gl=us'
         params = safe_urlencode({
             'q': query,
             'e': DELIVER_FEED if feed else self.email,
@@ -416,21 +414,17 @@ class GAlertsManager(object):
             't': ALERT_TYPES[type],
             'sig': self._scrape_sig(),
             })
-        conn = HTTPConnection('www.google.com')
-        conn.request('POST', '/alerts/create?hl=en&gl=us', params, headers)
-        response = conn.getresponse()
-        try:
-            if response.status != 302:
-                raise UnexpectedResponseError(response.status, response.getheaders(), response.read())
-        finally:
-            conn.close()
+        response = self.opener.open(url, params)
+        resp_code = response.getcode()
+        print 'CREATE RESPONSE: %i' % resp_code
+        if resp_code != 200:
+            raise UnexpectedResponseError(resp_code, [], response.read())
 
     def update(self, alert):
         """
         Updates an existing alert which has been modified.
         """
-        headers = {'Cookie': self.cookie,
-                   'Content-type': 'application/x-www-form-urlencoded; charset=utf-8'}
+        url = 'http://www.google.com/alerts/save?hl=en&gl=us'
         sig, es, hps = self._scrape_sig_es_hps(alert)
         params = {
             'd': DELIVER_TYPES.get(alert.deliver, DELIVER_DEFAULT_VAL),
@@ -445,35 +439,26 @@ class GAlertsManager(object):
         if alert.deliver == DELIVER_EMAIL:
             params['f'] = ALERT_FREQS[alert.freq]
         params = safe_urlencode(params)
-        conn = HTTPConnection('www.google.com')
-        conn.request('POST', '/alerts/save?hl=en&gl=us', params, headers)
-        response = conn.getresponse()
-        try:
-            if response.status != 302:
-                raise UnexpectedResponseError(response.status, response.getheaders(), response.read())
-        finally:
-            conn.close()
+        response = self.opener.open(url, params)
+        resp_code = response.getcode()
+        if resp_code != 200:
+            raise UnexpectedResponseError(resp_code, [], response.read())
 
     def delete(self, alert):
         """
         Deletes an existing alert.
         """
-        headers = {'Cookie': self.cookie,
-                   'Content-type': 'application/x-www-form-urlencoded'}
+        url = 'http://www.google.com/alerts/save?hl=en&gl=us'
         params = urlencode({
             'da': 'Delete',
             'e': self.email,
             's': alert._s,
             'sig': self._scrape_sig(path='/alerts/manage?hl=en&gl=us'),
             })
-        conn = HTTPConnection('www.google.com')
-        conn.request('POST', '/alerts/save?hl=en&gl=us', params, headers)
-        response = conn.getresponse()
-        try:
-            if response.status != 302:
-                raise UnexpectedResponseError(response.status, response.getheaders(), response.read())
-        finally:
-            conn.close()
+        response = self.opener.open(url, params)
+        resp_code = response.getcode()
+        if resp_code != 200:
+            raise UnexpectedResponseError(resp_code, [], response.read())
 
 
 def main():
