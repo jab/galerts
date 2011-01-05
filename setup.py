@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-version = '0.2dev'
+version = '0.2.0dev'
 try:
     import os
     doc_dir = os.path.join(os.path.dirname(__file__), 'docs')
@@ -31,7 +31,7 @@ setup(
     description="Python libary for managing Google Alerts",
     long_description=long_description,
     keywords='google, alerts, google alerts, news',
-    url='http://jab.github.com/galerts/',
+    url='http://packages.python.org/galerts',
     license='MIT',
     py_modules=['galerts'],
     zip_safe=True,
