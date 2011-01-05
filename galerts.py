@@ -195,9 +195,6 @@ class Alert(object):
         The type of the results this alert delivers.
 
         :raises: :exc:`ValueError` if value is not in :attr:`ALERT_TYPES`
-            (:attr:`TYPE_NEWS`, :attr:`TYPE_BLOGS`, :attr:`TYPE_WEB`,
-            :attr:`TYPE_COMPREHENSIVE`, :attr:`TYPE_VIDEO`,
-            :attr:`TYPE_GROUPS`)
         """)
 
     @property
@@ -412,17 +409,16 @@ class GAlertsManager(object):
             yield Alert(email, s, query, type, freq, deliver, feedurl=feedurl)
     
     def create(self, query, type, feed=True,
-            freq=ALERT_FREQS[FREQ_AS_IT_HAPPENS]):
+            freq=ALERT_FREQS[FREQ_ONCE_A_DAY]):
         """
         Creates a new alert.
 
         :param query: the search terms the alert will match
-        :param type: a value in :attr:`ALERT_TYPES` indicating the desired
-            results
+        :param type: a value in :attr:`ALERT_TYPES`
         :param feed: whether to deliver results via feed or email
         :param freq: a value in :attr:`ALERT_FREQS` indicating how often results
             should be delivered; used only for email alerts (feed alerts are
-            updated in real time)
+            updated in real time). Defaults to :attr:`FREQ_ONCE_A_DAY`.
         """
         url = 'http://www.google.com/alerts/create?hl=en&gl=us'
         params = safe_urlencode({
