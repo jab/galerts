@@ -287,8 +287,13 @@ class GAlertsManager(object):
         login_page_contents = self.opener.open(login_page_url).read()
 
         # Find GALX value
-        galx_match_obj = re.search(r'name="GALX"\s*value="([^"]+)"', login_page_contents, re.IGNORECASE)
-        galx_value = galx_match_obj.group(1) if galx_match_obj.group(1) is not None else ''
+        galx_match_obj = re.search(
+            r'name="GALX"\s*value="([^"]+)"',
+            login_page_contents,
+            re.IGNORECASE,
+        )
+        galx_value = galx_match_obj.group(1) \
+            if galx_match_obj.group(1) is not None else ''
 
         params = urlencode({
             'Email': self.email,
@@ -301,9 +306,15 @@ class GAlertsManager(object):
         resp_code = response.getcode()
         body = response.read()
         if resp_code == 403:
-            raise SignInError('Got 403 Forbidden; bad email/password combination?')
+            raise SignInError(
+                'Got 403 Forbidden; bad email/password combination?'
+            )
         if resp_code != 200:
-            raise UnexpectedResponseError(resp_code, [], body)
+            raise UnexpectedResponseError(
+                resp_code,
+                response.info().headers,
+                body,
+            )
 
     def _scrape_sig(self, path='/alerts'):
         """
@@ -316,7 +327,11 @@ class GAlertsManager(object):
         resp_code = response.getcode()
         body = response.read()
         if resp_code != 200:
-            raise UnexpectedResponseError(resp_code, [], body)
+            raise UnexpectedResponseError(
+                resp_code,
+                response.info().headers,
+                body,
+            )
         soup = BeautifulSoup(body)
         sig = soup.findChild('input', attrs={'name': 'sig'})['value']
         return str(sig)
@@ -332,7 +347,11 @@ class GAlertsManager(object):
         resp_code = response.getcode()
         body = response.read()
         if resp_code != 200:
-            raise UnexpectedResponseError(resp_code, [], body)
+            raise UnexpectedResponseError(
+                resp_code,
+                response.info().headers,
+                body,
+            )
         soup = BeautifulSoup(body)
         sig = soup.findChild('input', attrs={'name': 'sig'})['value']
         sig = str(sig)
@@ -413,12 +432,14 @@ class GAlertsManager(object):
             'f': ALERT_FREQS[FREQ_AS_IT_HAPPENS] if feed else freq,
             't': ALERT_TYPES[type],
             'sig': self._scrape_sig(),
-            })
+        })
         response = self.opener.open(url, params)
         resp_code = response.getcode()
-        print 'CREATE RESPONSE: %i' % resp_code
         if resp_code != 200:
-            raise UnexpectedResponseError(resp_code, [], response.read())
+            raise UnexpectedResponseError(resp_code,
+                response.info().headers,
+                response.read(),
+            )
 
     def update(self, alert):
         """
@@ -442,7 +463,11 @@ class GAlertsManager(object):
         response = self.opener.open(url, params)
         resp_code = response.getcode()
         if resp_code != 200:
-            raise UnexpectedResponseError(resp_code, [], response.read())
+            raise UnexpectedResponseError(
+                resp_code,
+                response.info().headers,
+                response.read(),
+            )
 
     def delete(self, alert):
         """
@@ -454,11 +479,15 @@ class GAlertsManager(object):
             'e': self.email,
             's': alert._s,
             'sig': self._scrape_sig(path='/alerts/manage?hl=en&gl=us'),
-            })
+        })
         response = self.opener.open(url, params)
         resp_code = response.getcode()
         if resp_code != 200:
-            raise UnexpectedResponseError(resp_code, [], response.read())
+            raise UnexpectedResponseError(
+                resp_code,
+                response.info().headers,
+                response.read(),
+            )
 
 
 def main():
