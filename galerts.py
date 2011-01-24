@@ -337,7 +337,7 @@ class GAlertsManager(object):
 
     def _scrape_sig(self, path='/alerts'):
         """
-        Google signs forms with a value in a hidden input named "sig" to
+        Google signs forms with a value in a hidden input named "x" to
         prevent xss attacks, so we need to scrape this out and submit it along
         with any forms we POST.
         """
@@ -352,14 +352,14 @@ class GAlertsManager(object):
                 body,
                 )
         soup = BeautifulSoup(body)
-        sig = soup.findChild('input', attrs={'name': 'sig'})['value']
+        sig = soup.findChild('input', attrs={'name': 'x'})['value']
         return str(sig)
 
     def _scrape_sig_es_hps(self, alert):
         """
         Each alert is associated with two values in hidden inputs named "es"
         and "hps" which must be scraped and passed along when modifying it
-        along with the "sig" hidden input value to prevent xss attacks.
+        along with the "x" hidden input value to prevent xss attacks.
         """
         url = 'http://www.google.com/alerts/edit?hl=en&gl=us&s=%s' % alert._s
         response = self.opener.open(url)
@@ -372,7 +372,7 @@ class GAlertsManager(object):
                 body,
                 )
         soup = BeautifulSoup(body)
-        sig = soup.findChild('input', attrs={'name': 'sig'})['value']
+        sig = soup.findChild('input', attrs={'name': 'x'})['value']
         es = soup.findChild('input', attrs={'name': 'es'})['value']
         hps = soup.findChild('input', attrs={'name': 'hps'})['value']
         return tuple(str(i) for i in (sig, es, hps))
@@ -451,7 +451,7 @@ class GAlertsManager(object):
             'f': ALERT_FREQS[FREQ_AS_IT_HAPPENS if feed else freq],
             't': ALERT_TYPES[type],
             'l': ALERT_VOLS[vol],
-            'sig': self._scrape_sig(),
+            'x': self._scrape_sig(),
         })
         response = self.opener.open(url, params)
         resp_code = response.getcode()
@@ -474,7 +474,7 @@ class GAlertsManager(object):
             'hps': hps,
             'q': alert.query,
             'se': 'Save',
-            'sig': sig,
+            'x': sig,
             't': ALERT_TYPES[alert.type],
             'l': ALERT_VOLS[alert.vol],
             }
@@ -499,7 +499,7 @@ class GAlertsManager(object):
             'da': 'Delete',
             'e': self.email,
             's': alert._s,
-            'sig': self._scrape_sig(path='/alerts/manage?hl=en&gl=us'),
+            'x': self._scrape_sig(path='/alerts/manage?hl=en&gl=us'),
         })
         response = self.opener.open(url, params)
         resp_code = response.getcode()
