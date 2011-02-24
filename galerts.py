@@ -323,11 +323,14 @@ class GAlertsManager(object):
             })
         response = self.opener.open(authenticate_url, params)
         resp_code = response.getcode()
+        final_url = response.geturl()
         body = response.read()
-        if resp_code == 403:
+
+        if resp_code == 403 or final_url == authenticate_url:
             raise SignInError(
                 'Got 403 Forbidden; bad email/password combination?'
                 )
+
         if resp_code != 200:
             raise UnexpectedResponseError(
                 resp_code,
