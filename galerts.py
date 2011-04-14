@@ -45,7 +45,7 @@ DELIVER_TYPES = {
     }
 
 #: Use this value for :attr:`Alert.freq` to indicate delivery in real time
-FREQ_AS_IT_HAPPENS = 'as-it-happens'
+FREQ_AS_IT_HAPPENS = 'As-it-happens'
 #: Use this value for :attr:`Alert.freq` to indicate delivery once a day
 FREQ_ONCE_A_DAY = 'once a day'
 #: Use this value for :attr:`Alert.freq` to indicate delivery once a week
@@ -395,7 +395,7 @@ class GAlertsManager(object):
             raise UnexpectedResponseError(resp_code, [], body)
 
         soup = BeautifulSoup(body, convertEntities=BeautifulSoup.HTML_ENTITIES)
-        trs = soup.findAll('tr', attrs={'class': 'data_row'})
+        trs = soup.findAll('tr', attrs={'class': 'ACTIVE'})
         for tr in trs:
             tds = tr.findAll('td')
             # annoyingly, if you have no alerts, Google tells you this in
@@ -407,30 +407,29 @@ class GAlertsManager(object):
                 continue
             tdcheckbox = tds[0]
             tdquery = tds[1]
-            tdtype = tds[2]
+            tdvol = tds[2]
             tdfreq = tds[3]
-            tdvol = tds[4]
-            tddeliver = tds[5]
+            tddeliver = tds[4]
+            tdtype = tds[5]
+
             s = tdcheckbox.findChild('input')['value']
             s = str(s)
             query = tdquery.findChild('a').next
             query = unicode(query)
-            type = tdtype.findChild('font').next
-            type = str(type)
-            # yes, they actually use <font> tags. really.
-            freq = tdfreq.findChild('font').next
+            freq = tdfreq.next
             freq = str(freq)
-            vol = tdvol.findChild('font').next
+            vol = tdvol.next
             vol = str(vol)
-            deliver = tddeliver.findChild('font').next
-            if deliver == DELIVER_EMAIL:
+
+            if not tddeliver.findAll('a'):
                 feedurl = None
                 deliver = DELIVER_EMAIL # normalize
             else: # deliver is an anchor tag
-                feedurl = deliver['href']
+                feedurl = tddeliver.findAll('a')[1]['href']
                 feedurl = str(feedurl)
                 deliver = DELIVER_FEED
             email = self.email # scrape out of html if and when we support accounts with multiple addresses
+            type = TYPE_EVERYTHING
             yield Alert(email, s, query, type, freq, vol, deliver, feedurl=feedurl)
     
     def create(self, query, type, feed=True, freq=FREQ_ONCE_A_DAY,
