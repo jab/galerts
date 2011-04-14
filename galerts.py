@@ -47,9 +47,9 @@ DELIVER_TYPES = {
 #: Use this value for :attr:`Alert.freq` to indicate delivery in real time
 FREQ_AS_IT_HAPPENS = 'As-it-happens'
 #: Use this value for :attr:`Alert.freq` to indicate delivery once a day
-FREQ_ONCE_A_DAY = 'once a day'
+FREQ_ONCE_A_DAY = 'Once a day'
 #: Use this value for :attr:`Alert.freq` to indicate delivery once a week
-FREQ_ONCE_A_WEEK = 'once a week'
+FREQ_ONCE_A_WEEK = 'Once a week'
 #: maps available alert frequencies to the values Google uses for them
 ALERT_FREQS = {
     FREQ_AS_IT_HAPPENS: '0',
