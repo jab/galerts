@@ -299,8 +299,8 @@ class GAlertsManager(object):
         """
         Obtains a cookie from Google for an authenticated session.
         """
-        login_page_url = 'https://www.google.com/accounts/ServiceLogin'
-        authenticate_url = 'https://www.google.com/accounts/ServiceLoginAuth'
+        login_page_url = 'https://accounts.google.com/ServiceLogin'
+        authenticate_url = 'https://accounts.google.com/ServiceLoginAuth'
 
         # Load login page
         login_page_contents = self.opener.open(login_page_url).read()
