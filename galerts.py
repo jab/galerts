@@ -1,5 +1,5 @@
 # Copyright (c) 2011 Josh Bronson
-# 
+#
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation
 # files (the "Software"), to deal in the Software without
@@ -8,10 +8,10 @@
 # copies of the Software, and to permit persons to whom the
 # Software is furnished to do so, subject to the following
 # conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be
 # included in all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 # EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
 # OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -143,7 +143,7 @@ class Alert(object):
 
     def _query_get(self):
         return self._query
-    
+
     def _query_set(self, value):
         if len(value) > QUERY_MAXLEN:
             raise ValueError('Illegal value for Alert.query (must be at most '
@@ -307,7 +307,7 @@ class GAlertsManager(object):
 
         # Find GALX value
         galx_match_obj = re.search(
-            r'name="GALX"\s*value="([^"]+)"',
+            r'name="GALX" type="hidden"\n*\t*\s*value="(.*)"',
             login_page_contents,
             re.IGNORECASE,
             )
@@ -431,7 +431,7 @@ class GAlertsManager(object):
             email = self.email # scrape out of html if and when we support accounts with multiple addresses
             type = TYPE_EVERYTHING
             yield Alert(email, s, query, type, freq, vol, deliver, feedurl=feedurl)
-    
+
     def create(self, query, type, feed=True, freq=FREQ_ONCE_A_DAY,
             vol=VOL_ONLY_BEST):
         """
