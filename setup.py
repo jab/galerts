@@ -26,10 +26,9 @@ like to collaborate.
 setup(
     name='galerts',
     version=version,
-    author='Josh Bronson',
-    author_email='jabronson@gmail.com',
-    maintainer='Peter Sanchez',
-    maintainer_email='patersanchez@gmail.com',
+    author='Joshua Bronson',
+    author_email='jab@math.brown.edu',
+    maintainer='(maintainer or sponsor needed)',
     description="Python libary for managing Google Alerts",
     long_description=long_description,
     keywords='google, alerts, google alerts, news',
@@ -38,7 +37,7 @@ setup(
     py_modules=['galerts'],
     zip_safe=True,
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 7 - Inactive",
         "License :: OSI Approved :: MIT License",
         "Topic :: Internet :: WWW/HTTP :: Dynamic Content :: News/Diary",
         "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
