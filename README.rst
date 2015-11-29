@@ -5,7 +5,15 @@ galerts
 Warning
 -------
 
-galerts development has been stalled for some time due to lack of funding. If you or your organization is interested in sponsoring development, please `contact the author <mailto:jab@math.brown.edu>`_ and/or post to the `mailing list <https://groups.google.com/group/galerts>`_.
+As predicted, Google eventually changed the Alerts UI
+and galerts' screen scraping consequently broke.
+Due to lack of time and funding,
+galerts is no longer supported.
+If you or your organization is interested in sponsoring development,
+please `contact the author <mailto:jab@math.brown.edu>`_.
+In the meantime,
+`this project <https://github.com/jra11/google-alerts-export-import>`_
+may provide a working alternative.
 
 -----
 Intro
