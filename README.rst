@@ -10,9 +10,9 @@ and galerts' screen scraping consequently broke.
 Due to lack of time and funding,
 galerts is no longer supported.
 If you or your organization is interested in sponsoring development,
-please `contact the author <mailto:jab@math.brown.edu>`_.
+please `contact the author <mailto:jab@math.brown.edu>`__.
 In the meantime,
-`this project <https://github.com/jra11/google-alerts-export-import>`_
+`<https://github.com/9b/google-alerts>`__
 may provide a working alternative.
 
 -----
@@ -20,18 +20,18 @@ Intro
 -----
 
 galerts is a Python client for managing `Google Alerts
-<http://www.google.com/alerts>`_. Currently it resorts to scraping html from
+<http://www.google.com/alerts>`__. Currently it resorts to scraping html from
 Google's web interface since there is as of yet no public API. If they ever
 decide to publish one, galerts will switch to using it, unless Google itself
-includes it in their `gdata-python-client <http://code.google.com/p/gdata-python-client/>`_,
+includes it in their `gdata-python-client <http://code.google.com/p/gdata-python-client/>`__,
 in which case galerts will be obsolete.
 
 ---------
 Community
 ---------
 
-galerts is `on github <http://github.com/jab/galerts>`_ and there is also a
-`Google group <http://groups.google.com/group/galerts>`_ if you have any
+galerts is `on github <http://github.com/jab/galerts>`__ and there is also a
+`Google group <http://groups.google.com/group/galerts>`__ if you have any
 questions or would like to collaborate.
 
 -----
